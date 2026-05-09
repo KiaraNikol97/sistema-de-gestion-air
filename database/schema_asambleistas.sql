@@ -1,21 +1,6 @@
 CREATE DATABASE IF NOT EXISTS proyecto_air;
 USE proyecto_air;
 
--- ::::::::::::::::::::
--- Tablas de Catálogos
--- ::::::::::::::::::::
-
-CREATE TABLE catalogo_sector (
-    id_sector INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL UNIQUE
-);
-
-CREATE TABLE catalogo_puestos (
-    id_puesto INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_puesto VARCHAR(100) NOT NULL UNIQUE
-);
-
-
 -- :::::::::::::::::::::::::::::
 -- feature/issue-9-asambleistas 
 -- :::::::::::::::::::::::::::::
