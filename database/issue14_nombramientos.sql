@@ -161,6 +161,36 @@ END //
 DELIMITER ;
 
 -- -----------------------------------------------------
+-- 3.5 FUNCIÓN: Validar traslape de nombramientos 
+-- -----------------------------------------------------
+DELIMITER //
+
+CREATE FUNCTION validar_traslape_nombramiento(
+    p_asambleista_id INT,
+    p_id_puesto INT,
+    p_fecha_inicio DATE,
+    p_fecha_fin DATE
+) RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    DECLARE existe_traslape INT;
+    
+    SELECT COUNT(*) INTO existe_traslape
+    FROM nombramiento
+    WHERE asambleista_id = p_asambleista_id
+    AND id_puesto = p_id_puesto
+    AND estado = 'Activo'
+    AND (
+        (p_fecha_inicio BETWEEN fecha_inicio AND COALESCE(fecha_fin, '9999-12-31'))
+        OR (COALESCE(p_fecha_fin, '9999-12-31') BETWEEN fecha_inicio AND COALESCE(fecha_fin, '9999-12-31'))
+        OR (fecha_inicio BETWEEN p_fecha_inicio AND COALESCE(p_fecha_fin, '9999-12-31'))
+    );
+    
+    RETURN existe_traslape = 0;
+END //
+
+DELIMITER ;
+-- -----------------------------------------------------
 -- 4. TRIGGER: Evitar fechas superpuestas
 -- -----------------------------------------------------
 DELIMITER //
@@ -169,22 +199,9 @@ CREATE TRIGGER trg_check_nombramiento_overlap
 BEFORE INSERT ON nombramiento
 FOR EACH ROW
 BEGIN
-    DECLARE conflict_count INT;
-    
-    SELECT COUNT(*) INTO conflict_count
-    FROM nombramiento
-    WHERE asambleista_id = NEW.asambleista_id
-    AND id_puesto = NEW.id_puesto
-    AND estado = 'Activo'
-    AND (
-        (NEW.fecha_inicio BETWEEN fecha_inicio AND COALESCE(fecha_fin, '9999-12-31'))
-        OR (NEW.fecha_fin BETWEEN fecha_inicio AND COALESCE(fecha_fin, '9999-12-31'))
-        OR (fecha_inicio BETWEEN NEW.fecha_inicio AND COALESCE(NEW.fecha_fin, '9999-12-31'))
-    );
-    
-    IF conflict_count > 0 THEN
+    IF NOT validar_traslape_nombramiento(NEW.asambleista_id, NEW.id_puesto, NEW.fecha_inicio, NEW.fecha_fin) THEN
         SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT = 'Ya existe un nombramiento activo para este asambleista y puesto en el período indicado';
+        SET MESSAGE_TEXT = 'Ya existe un nombramiento activo para este asambleísta y puesto en el período indicado';
     END IF;
 END //
 
