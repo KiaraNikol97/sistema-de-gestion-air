@@ -1,7 +1,8 @@
 // :::::::::::::::::::::::::::::::::::::::::::::::::
 // ISSUE #15 - Modelo de Reformas y Versionamiento
 // Autora: María Fernanda Vargas Guzmán
-// Sprint 2 - Semana 2
+// Sprint 2 - Semana 2 
+// Modelo MVC
 // :::::::::::::::::::::::::::::::::::::::::::::::::
 
 class Reforma {
