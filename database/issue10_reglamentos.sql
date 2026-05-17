@@ -63,14 +63,14 @@ INSERT INTO reglamento (nombre_normativa, sigla) VALUES
     ('Reglamento de Carrera Profesional', 'RCP')
 ON DUPLICATE KEY UPDATE nombre_normativa = VALUES(nombre_normativa);
 
---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- ISSUE #10 - Parte 2: Tabla Recursiva elemento_normativo
 -- Caro
 -- Sprint 2 - Semana 2
---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -- 1. TABLA RECURSIVA DE ELEMENTOS NORMATIVOS
---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 CREATE TABLE IF NOT EXISTS elemento_normativo (
     id_elemento INT PRIMARY KEY AUTO_INCREMENT,
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS elemento_normativo (
         CHECK (orden > 0)
 );
 
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 -- 2. ÍNDICE ÚNICO PARCIAL (Regla de Oro)
 
 
