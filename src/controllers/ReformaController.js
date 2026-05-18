@@ -5,33 +5,56 @@
 // Controller MVC
 // :::::::::::::::::::::::::::::::::::::::::::::::::
 
-const Reforma = require("../models/Reforma");
+// Conectar
+const ReformaModels = require("../models/ReformaModels");
 
 class ReformaController {
 
     constructor() {
-        this.reformaModel = new Reforma();
+        this.reformaModel = new ReformaModels();
     }
 
-    registrarReforma(datos) {
+    async registrarReforma(datos) {
 
-        // Validaciones básicas
         if (!datos.texto_nuevo) {
-
-            console.log(
-                "Error: Debe existir un nuevo texto."
-            );
-
+            console.log("Error: Debe existir un nuevo texto.");
             return;
         }
 
-        // Llamada al modelo
-        this.reformaModel.registrarReforma(datos);
+        if (!datos.id_elemento_normativo) {
+            console.log("Error: Debe indicarse el elemento normativo.");
+            return;
+        }
+
+        if (!datos.fecha_inicio_vigencia) {
+            console.log("Error: Debe indicarse la fecha de inicio de vigencia.");
+            return;
+        }
+
+        return await this.reformaModel.registrarReforma(datos);
     }
 
-    consultarVersionVigente(id_reglamento, numero_etiqueta) {
+    async consultarVersionVigente(id_reglamento, numero_etiqueta) {
 
-        this.reformaModel.obtenerElementoVigente(
+        if (!id_reglamento || !numero_etiqueta) {
+            console.log("Error: Faltan datos para consultar la versión vigente.");
+            return;
+        }
+
+        return await this.reformaModel.obtenerElementoVigente(
+            id_reglamento,
+            numero_etiqueta
+        );
+    }
+
+    async consultarHistorialVersiones(id_reglamento, numero_etiqueta) {
+
+        if (!id_reglamento || !numero_etiqueta) {
+            console.log("Error: Faltan datos para consultar el historial.");
+            return;
+        }
+
+        return await this.reformaModel.obtenerHistorialVersiones(
             id_reglamento,
             numero_etiqueta
         );
