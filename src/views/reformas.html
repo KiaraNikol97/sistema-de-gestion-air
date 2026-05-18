@@ -1,0 +1,151 @@
+<!-- :::::::::::::::::::::::::::::::::::::::::::::::::
+     ISSUE #15 - Vista de Reformas y Versionamiento
+     Autora: María Fernanda Vargas Guzmán
+     Sprint 2 - Semana 2
+     View MVC
+     ::::::::::::::::::::::::::::::::::::::::::::::::: -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Issue #15 - Gestión de Reformas</title>
+</head>
+<body>
+
+    <h1>Gestión de Reformas Normativas</h1>
+
+    <p>
+        Esta pantalla permite registrar una nueva reforma sobre un artículo,
+        inciso o sub-inciso existente. Al publicar una nueva versión, el sistema
+        debe marcar la versión anterior como Histórica y dejar la nueva como Vigente.
+    </p>
+
+    <hr>
+
+    <h2>Versión actual del elemento normativo</h2>
+
+    <form action="/reformas/registrar" method="POST">
+
+        <label for="id_elemento_normativo">ID del elemento normativo:</label><br>
+        <input 
+            type="number" 
+            id="id_elemento_normativo" 
+            name="id_elemento_normativo"
+            placeholder="Ej: 4"
+            required
+        >
+        <br><br>
+
+        <label for="texto_anterior">Texto anterior:</label><br>
+        <textarea 
+            id="texto_anterior" 
+            name="texto_anterior"
+            rows="5" 
+            cols="70" 
+            placeholder="Texto vigente actual"
+        ></textarea>
+        <br><br>
+
+        <label>Estado actual:</label><br>
+        <span style="background-color: green; color: white; padding: 5px;">
+            Vigente
+        </span>
+
+        <hr>
+
+        <h2>Registrar nueva reforma</h2>
+
+        <label for="texto_nuevo">Nuevo texto reformado:</label><br>
+        <textarea 
+            id="texto_nuevo" 
+            name="texto_nuevo"
+            rows="6" 
+            cols="70" 
+            placeholder="Ingrese el nuevo texto del artículo/inciso"
+            required
+        ></textarea>
+        <br><br>
+
+        <label for="fecha_inicio_vigencia">Fecha de inicio de vigencia:</label><br>
+        <input 
+            type="date" 
+            id="fecha_inicio_vigencia"
+            name="fecha_inicio_vigencia"
+            required
+        >
+        <br><br>
+
+        <label for="id_tipo_reforma">Tipo de reforma:</label><br>
+        <select 
+            id="id_tipo_reforma"
+            name="id_tipo_reforma"
+            required
+        >
+            <option value="">Seleccione una opción</option>
+            <option value="1">Modificación</option>
+            <option value="2">Derogación</option>
+        </select>
+        <br><br>
+
+        <label for="id_usuario_registro">ID del usuario que registra:</label><br>
+        <input 
+            type="number" 
+            id="id_usuario_registro"
+            name="id_usuario_registro"
+            placeholder="Ej: 1"
+            required
+        >
+        <br><br>
+
+        <button type="submit">
+            Publicar nueva versión
+        </button>
+
+    </form>
+
+    <hr>
+
+    <h2>Resultado esperado</h2>
+
+    <p>
+        Al presionar el botón, el controlador debe enviar los datos al modelo
+        de reformas. Luego, el trigger <strong>tg_vigencia_normativa</strong>
+        debe actualizar automáticamente la versión anterior como Histórica
+        y crear la nueva versión como Vigente.
+    </p>
+
+    <h3>Historial de versiones</h3>
+
+    <table border="1" cellpadding="8">
+        <thead>
+            <tr>
+                <th>ID Elemento</th>
+                <th>Texto</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>4</td>
+                <td>Texto original del artículo 2.</td>
+                <td>2024-01-01</td>
+                <td>2024-12-31</td>
+                <td>Histórica</td>
+            </tr>
+
+            <tr>
+                <td>5</td>
+                <td>Texto reformado del artículo 2.</td>
+                <td>2025-01-01</td>
+                <td></td>
+                <td>Vigente</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>
