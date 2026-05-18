@@ -219,3 +219,32 @@ exports.getReportePorSector = async (req, res) => {
         });
     }
 };
+
+// Endpoint para funcionamiento de los archivos html (views)
+
+// Validar traslape de fechas (para uso desde el frontend)
+exports.validarTraslapeAPI = async (req, res) => {
+    try {
+        const { asambleista_id, id_puesto, fecha_inicio, fecha_fin } = req.body;
+        
+        const esValido = await Nombramiento.validarTraslape(
+            asambleista_id,
+            id_puesto,
+            fecha_inicio,
+            fecha_fin
+        );
+        
+        res.json({
+            success: true,
+            data: { es_valido: esValido },
+            message: esValido ? 'Período válido' : 'Existe traslape con otro nombramiento activo'
+        });
+        
+    } catch (error) {
+        console.error('Error en validarTraslapeAPI:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al validar traslape'
+        });
+    }
+};
