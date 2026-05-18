@@ -2,7 +2,7 @@
 // Descripción: Modelo para gestión de normativa (recursividad)
 // Dependencias: mysql2/promise
 
-const pool = require('../../config/database');
+const pool = require('../../config/db');
 
 class NormativaModel {
     
