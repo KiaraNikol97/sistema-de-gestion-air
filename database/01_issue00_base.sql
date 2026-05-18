@@ -40,3 +40,5 @@ INSERT INTO sys_permiso (nombre_permiso, descripcion) VALUES
     ('crear_mocion', 'Permite a los asambleístas proponer mociones'),
     ('certificar', 'Permite a secretaría emitir PDFs oficiales'),
     ('planificar', 'Permite al directorio organizar la agenda');
+ON DUPLICATE KEY UPDATE descripcion = VALUES(descripcion);
+SELECT * FROM sys_rol;
