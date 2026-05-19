@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Nombramientos - Asamblea Universitaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sector-vigente-card {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .sector-vigente-card h3 {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        .sector-vigente-card .sector-nombre {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+        }
+        .sector-vigente-card .puesto-nombre {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+        .badge-vigente {
+            background-color: #28a745;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .badge-vencido {
+            background-color: #dc3545;
+        }
+        .badge-finalizado {
+            background-color: #6c757d;
+        }
+        .historial-table th {
+            background-color: #f8f9fc;
+        }
+        .btn-finalizar {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+        .btn-finalizar:hover {
+            background-color: #c82333;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        .search-box {
+            max-width: 300px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Shared Navbar (se incluye dinámicamente) -->
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="fas fa-history me-2"></i>Historial de Nombramientos</h1>
+                <p class="text-muted">Consulta el historial completo y el sector vigente de cada asambleísta</p>
+            </div>
+            <a href="/nombramientos/registro" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Nuevo Nombramiento
+            </a>
+        </div>
+
+        <!-- Selector de Asambleísta -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="asambleista-select" class="form-label fw-bold">
+                            <i class="fas fa-user me-1"></i> Seleccionar Asambleísta
+                        </label>
+                        <select id="asambleista-select" class="form-select">
+                            <option value="">-- Cargando asambleístas... --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button id="btn-buscar" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-1"></i> Buscar
+                        </button>
+                        <button id="btn-limpiar" class="btn btn-secondary">
+                            <i class="fas fa-eraser me-1"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando información...</p>
+        </div>
+
+        <!-- Sector Vigente Card -->
+        <div id="sector-vigente-container" style="display: none;">
+            <div class="sector-vigente-card">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h3><i class="fas fa-check-circle me-1"></i> Sector Vigente Actual</h3>
+                        <p class="sector-nombre" id="sector-nombre">-</p>
+                        <p class="puesto-nombre" id="puesto-nombre">-</p>
+                        <small id="fechas-vigencia"><i class="far fa-calendar-alt me-1"></i> Desde: -</small>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <span class="badge-vigente"><i class="fas fa-check me-1"></i> Activo</span>
+                        <div class="mt-2">
+                            <button id="btn-finalizar" class="btn-finalizar" style="display: none;">
+                                <i class="fas fa-ban me-1"></i> Finalizar Nombramiento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sin sector vigente -->
+        <div id="sin-sector-container" class="alert alert-warning" style="display: none;">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Sin nombramiento vigente:</strong> Este asambleísta no tiene un sector asignado actualmente.
+        </div>
+
+        <!-- Historial Completo -->
+        <div class="card">
+            <div class="card-header bg-white fw-bold">
+                <i class="fas fa-timeline me-1"></i> Historial Completo de Nombramientos
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover historial-table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Sector</th>
+                                <th>Puesto</th>
+                                <th>Fecha Inicio</th>
+                                <th>Fecha Fin</th>
+                                <th>Estado</th>
+                                <th>Resolución</th>
+                                <th>Registrado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historial-tbody">
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    Seleccione un asambleísta para ver su historial
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shared Footer -->
+    <div id="footer-placeholder"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // API Base URL
+        const API_BASE = '/api';
+        let currentAsambleistaId = null;
+
+        // Cargar navbar y footer compartidos
+        function loadSharedComponents() {
+            fetch('/shared/navbar.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(err => console.error('Error cargando navbar:', err));
+            
+            fetch('/shared/footer.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(err => console.error('Error cargando footer:', err));
+        }
+
+        // Cargar lista de asambleístas para el selector
+        async function loadAsambleistas() {
+            try {
+                const response = await fetch(`${API_BASE}/asambleistas`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const select = document.getElementById('asambleista-select');
+                    select.innerHTML = '<option value="">-- Seleccionar Asambleísta --</option>';
+                    result.data.forEach(a => {
+                        select.innerHTML += `<option value="${a.asambleista_id}">${a.nombres} ${a.apellidos || ''} (${a.cedula})</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando asambleístas:', error);
+                document.getElementById('asambleista-select').innerHTML = '<option value="">Error al cargar</option>';
+            }
+        }
+
+        // Mostrar/ocultar loading
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // Cargar historial y sector vigente
+        async function loadAsambleistaData(asambleistaId) {
+            if (!asambleistaId) {
+                resetUI();
+                return;
+            }
+            
+            showLoading(true);
+            currentAsambleistaId = asambleistaId;
+            
+            try {
+                // Cargar historial
+                const historyResponse = await fetch(`${API_BASE}/nombramientos/historial/${asambleistaId}`);
+                const historyResult = await historyResponse.json();
+                
+                if (historyResult.success) {
+                    renderHistorial(historyResult.data);
+                } else {
+                    renderHistorial([]);
+                }
+                
+                // Cargar sector vigente
+                const vigenteResponse = await fetch(`${API_BASE}/nombramientos/vigente/${asambleistaId}`);
+                const vigenteResult = await vigenteResponse.json();
+                
+                if (vigenteResult.success && vigenteResult.data) {
+                    renderSectorVigente(vigenteResult.data);
+                } else {
+                    showNoSectorVigente();
+                }
+                
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                renderHistorial([]);
+                showNoSectorVigente();
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function resetUI() {
+            document.getElementById('sector-vigente-container').style.display = 'none';
+            document.getElementById('sin-sector-container').style.display = 'none';
+            document.getElementById('historial-tbody').innerHTML = `
+                <tr><td colspan="8" class="text-center text-muted py-4">Seleccione un asambleísta para ver su historial</td></tr>
+            `;
+        }
+        
+        function renderHistorial(data) {
+            const tbody = document.getElementById('historial-tbody');
+            
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No hay nombramientos registrados para este asambleísta</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = data.map((item, index) => {
+                let estadoBadge = '';
+                if (item.estado_real === 'Vigente') {
+                    estadoBadge = '<span class="badge bg-success">Vigente</span>';
+                } else if (item.estado_real === 'Vencido') {
+                    estadoBadge = '<span class="badge bg-danger">Vencido</span>';
+                } else if (item.estado === 'Finalizado') {
+                    estadoBadge = '<span class="badge bg-secondary">Finalizado</span>';
+                } else {
+                    estadoBadge = `<span class="badge bg-warning">${item.estado}</span>`;
+                }
+                
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.sector || '-'}</td>
+                        <td>${item.puesto || '-'}</td>
+                        <td>${formatDate(item.fecha_inicio)}</td>
+                        <td>${item.fecha_fin ? formatDate(item.fecha_fin) : '-'}</td>
+                        <td>${estadoBadge}</td>
+                        <td>${item.resolucion_id || '-'}</td>
+                        <td>${formatDate(item.fecha_registro)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function renderSectorVigente(data) {
+            document.getElementById('sin-sector-container').style.display = 'none';
+            document.getElementById('sector-vigente-container').style.display = 'block';
+            
+            document.getElementById('sector-nombre').textContent = data.sector || '-';
+            document.getElementById('puesto-nombre').textContent = data.puesto || '-';
+            document.getElementById('fechas-vigencia').innerHTML = `<i class="far fa-calendar-alt me-1"></i> Desde: ${formatDate(data.desde)} ${data.hasta ? `hasta ${formatDate(data.hasta)}` : '(indefinido)'}`;
+            
+            // Mostrar botón finalizar si el nombramiento es vigente
+            const btnFinalizar = document.getElementById('btn-finalizar');
+            if (currentAsambleistaId && data) {
+                btnFinalizar.style.display = 'inline-block';
+                btnFinalizar.onclick = () => finalizarNombramiento(currentAsambleistaId);
+            } else {
+                btnFinalizar.style.display = 'none';
+            }
+        }
+        
+        function showNoSectorVigente() {
+            document.getElementById('sector-vigente-container').style.display = 'none';
+            document.getElementById('sin-sector-container').style.display = 'block';
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('es-ES');
+        }
+        
+        async function finalizarNombramiento(asambleistaId) {
+            // Primero obtener el ID del nombramiento vigente
+            try {
+                const vigenteResponse = await fetch(`${API_BASE}/nombramientos/vigente/${asambleistaId}`);
+                const vigenteResult = await vigenteResponse.json();
+                
+                if (!vigenteResult.success || !vigenteResult.data) {
+                    alert('No hay nombramiento vigente para finalizar');
+                    return;
+                }
+                
+                const fechaFin = prompt('Ingrese la fecha de finalización (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+                if (!fechaFin) return;
+                
+                const observacion = prompt('Motivo de finalización:', 'Finalización administrativa');
+                
+                const response = await fetch(`${API_BASE}/nombramientos/${vigenteResult.data.id_nombramiento}/finalizar`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fecha_fin: fechaFin, observacion: observacion || 'Sin especificar' })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Nombramiento finalizado exitosamente');
+                    loadAsambleistaData(asambleistaId);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error finalizando:', error);
+                alert('Error al finalizar el nombramiento');
+            }
+        }
+        
+        // Event Listeners
+        document.getElementById('btn-buscar').addEventListener('click', () => {
+            const select = document.getElementById('asambleista-select');
+            const asambleistaId = select.value;
+            if (asambleistaId) {
+                loadAsambleistaData(asambleistaId);
+            } else {
+                alert('Por favor seleccione un asambleísta');
+            }
+        });
+        
+        document.getElementById('btn-limpiar').addEventListener('click', () => {
+            document.getElementById('asambleista-select').value = '';
+            resetUI();
+            currentAsambleistaId = null;
+        });
+        
+        // Inicializar
+        loadSharedComponents();
+        loadAsambleistas();
+    </script>
+</body>
+</html>
