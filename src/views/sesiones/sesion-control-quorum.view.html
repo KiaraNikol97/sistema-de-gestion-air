@@ -1,0 +1,411 @@
+<!-- /src/views/sesiones/sesion-control-quorum.view.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Quórum - Sesiones AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f5f7fb;
+        }
+        .quorum-card {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .quorum-card h3 {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        .quorum-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 0;
+        }
+        .quorum-status {
+            font-size: 1.2rem;
+            padding: 8px 20px;
+            border-radius: 30px;
+            display: inline-block;
+        }
+        .status-ok {
+            background-color: #28a745;
+            color: white;
+        }
+        .status-error {
+            background-color: #dc3545;
+            color: white;
+        }
+        .status-warning {
+            background-color: #ffc107;
+            color: #333;
+        }
+        .asistencia-table th {
+            background-color: #f8f9fc;
+        }
+        .presente-check {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+        }
+        .btn-primary-custom:hover {
+            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-users me-2"></i>Control de Quórum - Sesiones AIR</h1>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuevaSesion">
+                <i class="fas fa-plus me-1"></i> Nueva Sesión
+            </button>
+        </div>
+
+        <!-- Selector de Sesión -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="sesion-select" class="form-label fw-bold">
+                            <i class="fas fa-calendar-alt me-1"></i> Seleccionar Sesión
+                        </label>
+                        <select id="sesion-select" class="form-select">
+                            <option value="">-- Seleccionar sesión --</option>
+                            <option value="1">Sesión Ordinaria AIR-01-2025 - 15/01/2025</option>
+                            <option value="2">Sesión Extraordinaria AIR-02-2025 - 28/01/2025</option>
+                            <option value="3">Sesión Ordinaria AIR-03-2025 - 10/02/2025</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button id="btn-cargar-sesion" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-1"></i> Cargar Sesión
+                        </button>
+                        <button id="btn-limpiar" class="btn btn-secondary">
+                            <i class="fas fa-eraser me-1"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Cargando datos de la sesión...</p>
+        </div>
+
+        <!-- Información de la Sesión -->
+        <div id="info-sesion" style="display: none;">
+            <div class="quorum-card">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h3><i class="fas fa-info-circle me-1"></i> Sesión Actual</h3>
+                        <p class="mb-1" id="sesion-nombre">-</p>
+                        <small id="sesion-fecha">-</small>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <div>
+                            <small>Quórum requerido (mitad+1)</small>
+                            <p class="quorum-number" id="quorum-requerido">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado del Quórum -->
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-chart-simple me-2"></i>Estado Actual del Quórum</h5>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <small class="text-muted">Presentes</small>
+                                <h2 id="presentes-count" class="mb-0">0</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <small class="text-muted">Total Asambleístas</small>
+                                <h2 id="total-count" class="mb-0">0</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3">
+                                <small class="text-muted">Estado</small>
+                                <div id="quorum-status" class="mt-1"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Asistencia -->
+            <div class="card">
+                <div class="card-header bg-white fw-bold">
+                    <i class="fas fa-clipboard-list me-1"></i> Registro de Asistencia
+                    <button id="btn-marcar-todos" class="btn btn-sm btn-outline-primary float-end">
+                        <i class="fas fa-check-double me-1"></i> Marcar todos presentes
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover asistencia-table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cédula</th>
+                                    <th>Nombre</th>
+                                    <th>Sector</th>
+                                    <th class="text-center">Presente</th>
+                                    <th>Hora registro</th>
+                                </tr>
+                            </thead>
+                            <tbody id="asistencia-tbody">
+                                <tr><td colspan="6" class="text-center text-muted py-4">Seleccione una sesión para ver los asambleístas</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end mt-4">
+                <button id="btn-guardar-asistencia" class="btn btn-primary-custom">
+                    <i class="fas fa-save me-1"></i> Guardar Registro de Asistencia
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Nueva Sesión -->
+    <div class="modal fade" id="modalNuevaSesion" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Crear Nueva Sesión</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formNuevaSesion" onsubmit="return false;">
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Sesión:</label>
+                            <select class="form-select" id="tipo_sesion" required>
+                                <option value="Ordinaria">Ordinaria</option>
+                                <option value="Extraordinaria">Extraordinaria</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Número de Sesión:</label>
+                            <input type="text" class="form-control" id="numero_sesion" placeholder="Ej: AIR-01-2025" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha:</label>
+                            <input type="date" class="form-control" id="fecha_sesion" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quórum Requerido (%):</label>
+                            <select class="form-select" id="quorum_porcentaje">
+                                <option value="50">50% + 1 (Mayoría simple)</option>
+                                <option value="66">66% (Mayoría calificada)</option>
+                            </select>
+                            <small class="text-muted">Según el Estatuto, el quórum mínimo es la mitad más uno de los miembros</small>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Nota:</strong> El quórum se calculará automáticamente al registrar asistencia.
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" onclick="crearSesion()">
+                            <i class="fas fa-save me-1"></i> Crear Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentSesionId = null;
+        let asambleistasData = [];
+        let asistenciaActual = {};
+
+        // Datos de ejemplo
+        const asambleistasMock = [
+            { id: 1, cedula: "1-2345-6789", nombre: "Ana María Rodríguez Mora", sector: "Docencia" },
+            { id: 2, cedula: "2-3456-7890", nombre: "Carlos Jiménez Solano", sector: "Administración" },
+            { id: 3, cedula: "3-4567-8901", nombre: "María Fernanda Vargas", sector: "Estudiantil" },
+            { id: 4, cedula: "4-5678-9012", nombre: "Luis Gómez Gutiérrez", sector: "Docencia" },
+            { id: 5, cedula: "5-6789-0123", nombre: "Rosa Fernández Pérez", sector: "Administración" }
+        ];
+
+        const sesionesMock = {
+            1: { nombre: "Sesión Ordinaria AIR-01-2025", fecha: "2025-01-15", quorum_requerido: 3, total_miembros: 5 },
+            2: { nombre: "Sesión Extraordinaria AIR-02-2025", fecha: "2025-01-28", quorum_requerido: 3, total_miembros: 5 },
+            3: { nombre: "Sesión Ordinaria AIR-03-2025", fecha: "2025-02-10", quorum_requerido: 3, total_miembros: 5 }
+        };
+
+        function loadSharedComponents() {
+            document.getElementById('navbar-placeholder').innerHTML = `
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <div class="container">
+                        <a class="navbar-brand" href="#"><i class="fas fa-gavel me-2"></i>AIR - Sistema Legislativo</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav ms-auto">
+                                <li class="nav-item"><a class="nav-link" href="/asambleistas">Asambleístas</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/normativa/arbol">Normativa</a></li>
+                                <li class="nav-item"><a class="nav-link active" href="/sesiones">Sesiones</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/certificaciones">Certificaciones</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+            `;
+            document.getElementById('footer-placeholder').innerHTML = `
+                <footer class="text-center text-muted py-3 mt-4 border-top">
+                    <small>Asamblea Institucional Representativa - TEC | Sistema de Gestión Legislativa</small>
+                </footer>
+            `;
+        }
+
+        function cargarSesion() {
+            const sesionId = document.getElementById('sesion-select').value;
+            if (!sesionId) return;
+
+            currentSesionId = sesionId;
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('info-sesion').style.display = 'none';
+
+            setTimeout(() => {
+                const sesion = sesionesMock[sesionId];
+                if (sesion) {
+                    document.getElementById('sesion-nombre').innerText = sesion.nombre;
+                    document.getElementById('sesion-fecha').innerHTML = `<i class="far fa-calendar-alt me-1"></i> ${sesion.fecha}`;
+                    document.getElementById('quorum-requerido').innerText = sesion.quorum_requerido;
+                    document.getElementById('total-count').innerText = sesion.total_miembros;
+
+                    cargarTablaAsistencia();
+                    actualizarQuorum();
+                }
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('info-sesion').style.display = 'block';
+            }, 500);
+        }
+
+        function cargarTablaAsistencia() {
+            const tbody = document.getElementById('asistencia-tbody');
+            tbody.innerHTML = '';
+            
+            asambleistasMock.forEach(a => {
+                const isPresent = asistenciaActual[a.id] || false;
+                const row = tbody.insertRow();
+                row.insertCell(0).innerText = a.id;
+                row.insertCell(1).innerText = a.cedula;
+                row.insertCell(2).innerText = a.nombre;
+                row.insertCell(3).innerText = a.sector;
+                row.insertCell(4).innerHTML = `<input type="checkbox" class="presente-check" data-id="${a.id}" ${isPresent ? 'checked' : ''}>`;
+                row.insertCell(5).innerText = isPresent ? new Date().toLocaleTimeString() : '-';
+                
+                const check = row.querySelector('.presente-check');
+                check.addEventListener('change', (e) => {
+                    asistenciaActual[a.id] = e.target.checked;
+                    if (e.target.checked) {
+                        row.cells[5].innerText = new Date().toLocaleTimeString();
+                    } else {
+                        row.cells[5].innerText = '-';
+                    }
+                    actualizarQuorum();
+                });
+            });
+        }
+
+        function actualizarQuorum() {
+            const presentes = Object.values(asistenciaActual).filter(v => v === true).length;
+            const total = asambleistasMock.length;
+            const quorumRequerido = sesionesMock[currentSesionId]?.quorum_requerido || 3;
+            
+            document.getElementById('presentes-count').innerText = presentes;
+            
+            const statusDiv = document.getElementById('quorum-status');
+            if (presentes >= quorumRequerido) {
+                statusDiv.innerHTML = '<span class="quorum-status status-ok"><i class="fas fa-check-circle me-1"></i> Quórum Aprobado - Válido para sesionar</span>';
+            } else {
+                const faltantes = quorumRequerido - presentes;
+                statusDiv.innerHTML = `<span class="quorum-status status-error"><i class="fas fa-times-circle me-1"></i> Quórum Insuficiente - Faltan ${faltantes} asambleísta(s)</span>`;
+            }
+        }
+
+        function guardarAsistencia() {
+            const presentes = Object.values(asistenciaActual).filter(v => v === true).length;
+            const quorumRequerido = sesionesMock[currentSesionId]?.quorum_requerido || 3;
+            
+            if (presentes >= quorumRequerido) {
+                alert(`✅ Asistencia guardada exitosamente.\nPresentes: ${presentes}/${asambleistasMock.length}\nQuórum: Aprobado`);
+            } else {
+                alert(`⚠️ Advertencia: Quórum insuficiente.\nPresentes: ${presentes}\nRequerido: ${quorumRequerido}\nLa sesión no puede iniciar.`);
+            }
+        }
+
+        function marcarTodosPresentes() {
+            asambleistasMock.forEach(a => {
+                asistenciaActual[a.id] = true;
+            });
+            cargarTablaAsistencia();
+            actualizarQuorum();
+        }
+
+        function crearSesion() {
+            const tipo = document.getElementById('tipo_sesion').value;
+            const numero = document.getElementById('numero_sesion').value;
+            const fecha = document.getElementById('fecha_sesion').value;
+            
+            if (!numero || !fecha) {
+                alert('Complete todos los campos');
+                return;
+            }
+            
+            alert(`✅ Sesión creada: ${tipo} ${numero} - ${fecha}\nAhora puede registrar la asistencia.`);
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaSesion'));
+            modal.hide();
+            document.getElementById('formNuevaSesion').reset();
+        }
+
+        document.getElementById('btn-cargar-sesion').addEventListener('click', cargarSesion);
+        document.getElementById('btn-guardar-asistencia').addEventListener('click', guardarAsistencia);
+        document.getElementById('btn-marcar-todos').addEventListener('click', marcarTodosPresentes);
+        document.getElementById('btn-limpiar').addEventListener('click', () => {
+            document.getElementById('sesion-select').value = '';
+            document.getElementById('info-sesion').style.display = 'none';
+            currentSesionId = null;
+            asistenciaActual = {};
+        });
+
+        loadSharedComponents();
+    </script>
+</body>
+</html>
