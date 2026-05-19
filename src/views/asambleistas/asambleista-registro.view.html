@@ -23,9 +23,8 @@
     <h1> Gestión de Asambleístas - AIR</h1>
     <a href="/asambleistas">← Volver al listado</a>
 
-    <!-- ============================================= -->
     <!-- SECCIÓN 1: DATOS PERSONALES (Registro/Edición)-->
-    <!-- ============================================= -->
+ 
     <div class="seccion">
         <h2 id="form-titulo">📝 Registrar asambleísta</h2>
         <form action="/asambleistas/guardar" method="POST" id="asambleista-form" onsubmit="return false;">
@@ -51,11 +50,10 @@
         </form>
     </div>
 
-    <!-- ============================================= -->
     <!-- SECCIÓN 2: NOMBRAMIENTOS (Requisito #3 y #7)  -->
-    <!-- ============================================= -->
+ 
     <div class="seccion" id="nombramientos-section" style="display:none;">
-        <h2>📌 Gestión de nombramientos</h2>
+        <h2> Gestión de nombramientos</h2>
         <input type="hidden" id="nombramiento_asambleista_id">
         
         <h3>Nombramientos actuales</h3>
@@ -107,7 +105,7 @@
     </div>
 
     <script>
-        // Datos de ejemplo (esto vendrá del controlador en el backend real)
+    
         let asambleistasData = [
             { id: 1, cedula: "1-2345-6789", nombre: "Ana María Rodríguez Mora", correo: "arodriguez@tec.ac.cr" },
             { id: 2, cedula: "2-3456-7890", nombre: "Carlos Jiménez Solano", correo: "cjimenez@tec.ac.cr" },
@@ -123,7 +121,7 @@
         // Detectar si es edición por la URL o parámetros
         function obtenerIdDeURL() {
             // Simulación: en el backend real se pasa el ID
-            // Por ahora, mostramos un selector para pruebas
+
             let params = new URLSearchParams(window.location.search);
             return params.get('id');
         }
@@ -131,7 +129,7 @@
         function cargarAsambleistaParaEdicion(id) {
             let asambleista = asambleistasData.find(a => a.id == id);
             if(asambleista) {
-                document.getElementById('form-titulo').innerText = '✏️ Editar asambleísta';
+                document.getElementById('form-titulo').innerText = ' Editar asambleísta';
                 document.getElementById('asambleista_id').value = asambleista.id;
                 document.getElementById('nombre').value = asambleista.nombre;
                 document.getElementById('cedula').value = asambleista.cedula;
