@@ -1,0 +1,780 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Reglamentos - Estructura Árbol | AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --tree-line: #cbd5e0;
+            --tree-node-bg: #f8fafc;
+            --tree-node-hover: #e2e8f0;
+            --tree-active: #1e3c72;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Contenedor del árbol */
+        .tree-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 25px;
+            margin-bottom: 30px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        /* Estilos para el árbol jerárquico */
+        .tree, .tree ul {
+            list-style: none;
+            margin: 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .tree {
+            padding-left: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 8px 0 8px 20px;
+            margin: 0;
+        }
+
+        /* Líneas verticales */
+        .tree li::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: var(--tree-line);
+        }
+
+        /* Líneas horizontales */
+        .tree li::after {
+            content: '';
+            position: absolute;
+            top: 24px;
+            left: 0;
+            width: 15px;
+            height: 2px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::before {
+            height: 24px;
+        }
+
+        .tree > li::before,
+        .tree > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: inline-block;
+            background: var(--tree-node-bg);
+            border-left: 4px solid var(--tree-active);
+            padding: 12px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: auto;
+            min-width: 280px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .tree-node:hover {
+            background: var(--tree-node-hover);
+            transform: translateX(3px);
+        }
+
+        .tree-node.active {
+            background: var(--tree-active);
+            border-left-color: #f59e0b;
+            color: white;
+        }
+
+        .tree-node.active .text-muted {
+            color: #cbd5e0 !important;
+        }
+
+        .tree-node .articulo-titulo {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .tree-node .articulo-numero {
+            font-weight: 700;
+            color: var(--tree-active);
+            margin-right: 10px;
+        }
+
+        .tree-node.active .articulo-numero {
+            color: #fbbf24;
+        }
+
+        .tree-node .articulo-resumen {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        /* Badges de estado */
+        .badge-vigente {
+            background-color: #10b981;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-left: 10px;
+        }
+
+        .badge-historico {
+            background-color: #6c757d;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-left: 10px;
+        }
+
+        .tree-node.active .badge-vigente {
+            background-color: #34d399;
+        }
+
+        /* Panel de contenido */
+        .content-panel {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 30px;
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .content-panel h2 {
+            color: var(--tree-active);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* Botones */
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 20px;
+        }
+
+        .btn-primary-custom:hover {
+            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+        }
+
+        /* Modal */
+        .modal-header-custom {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+
+        .form-label {
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* Búsqueda */
+        .search-box input {
+            border-radius: 30px;
+            padding: 10px 20px 10px 45px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 18px;
+            top: 13px;
+            color: #94a3b8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        @media (max-width: 768px) {
+            .tree-container {
+                height: auto;
+                max-height: 400px;
+            }
+            .content-panel {
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar izquierdo: Árbol del Reglamento -->
+            <div class="col-lg-5 col-xl-4">
+                <div class="tree-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5 class="mb-0"><i class="fas fa-sitemap me-2 text-primary"></i>Estructura del Reglamento</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" id="btn-expandir-todo">
+                                <i class="fas fa-plus-circle me-1"></i> Expandir
+                            </button>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoElemento">
+                                <i class="fas fa-plus me-1"></i> Nuevo
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="search-box position-relative mb-3">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="form-control" id="search-articulo" placeholder="Buscar por número o título...">
+                    </div>
+
+                    <div id="loading-tree" class="loading" style="display: none;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2">Cargando estructura...</p>
+                    </div>
+
+                    <div id="tree-container" style="max-height: calc(100vh - 280px); overflow-y: auto;">
+                        <ul class="tree" id="normativa-tree">
+                            <li>
+                                <div class="tree-node root-node" data-id="1" data-numero="REGLAMENTO" data-titulo="Reglamento General" data-estado="vigente">
+                                    <span class="articulo-numero">📘 REGLAMENTO</span>
+                                    <span class="articulo-titulo">Reglamento General de la AIR</span>
+                                    <div class="articulo-resumen">Estructura normativa completa</div>
+                                    <span class="badge-vigente">VIGENTE</span>
+                                </div>
+                                <ul id="root-children"></ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel derecho: Contenido del artículo seleccionado -->
+            <div class="col-lg-7 col-xl-8">
+                <div class="content-panel" id="content-panel">
+                    <div id="loading-content" class="loading" style="display: none;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Cargando contenido...</p>
+                    </div>
+                    <div id="contenido-inicial">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-file-alt fa-4x mb-3 opacity-50"></i>
+                            <h4>Seleccione un artículo del reglamento</h4>
+                            <p>Haga clic en cualquier nodo del árbol para ver su contenido completo</p>
+                            <hr class="my-4">
+                            <p class="small">También puede <strong>crear nuevos elementos</strong> o <strong>publicar nuevas versiones</strong></p>
+                        </div>
+                    </div>
+                    <div id="contenido-articulo" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+    <!-- MODAL: CREAR NUEVO ELEMENTO -->
+    
+    <div class="modal fade" id="modalNuevoElemento" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Crear nuevo elemento normativo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formNuevoElemento" onsubmit="return false;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Nivel:</label>
+                                <select class="form-select" id="nivel_elemento" required>
+                                    <option value="Título">Título</option>
+                                    <option value="Capítulo">Capítulo</option>
+                                    <option value="Artículo">Artículo</option>
+                                    <option value="Inciso">Inciso</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Número/Etiqueta:</label>
+                                <input type="text" class="form-control" id="numero_elemento" placeholder="Ej: Artículo 5, Título I, Inciso a)" required>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Elemento padre (jerarquía):</label>
+                            <select class="form-select" id="padre_elemento">
+                                <option value="">-- Ninguno (Raíz) --</option>
+                                <option value="1">REGLAMENTO - Reglamento General</option>
+                                <option value="2">TÍTULO I - Disposiciones Generales</option>
+                                <option value="5">TÍTULO II - De los Asambleístas</option>
+                                <option value="8">Art. 12 - Nombramientos</option>
+                            </select>
+                            <small class="text-muted">Seleccione el elemento que contiene a este nuevo elemento</small>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Título/Encabezado:</label>
+                            <input type="text" class="form-control" id="titulo_elemento" placeholder="Ej: Del objeto del reglamento" required>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Contenido/Texto:</label>
+                            <textarea class="form-control" id="contenido_elemento" rows="5" placeholder="Escriba el texto completo del artículo o inciso..."></textarea>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Fecha de vigencia:</label>
+                            <input type="date" class="form-control" id="fecha_vigencia" value="2024-01-01">
+                        </div>
+
+                        <div class="mt-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="es_vigente" checked>
+                            <label class="form-check-label">Marcar como VIGENTE (si no, será HISTÓRICO)</label>
+                        </div>
+
+                        <div class="alert alert-info mt-3 small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Regla de Oro:</strong> No pueden existir dos versiones vigentes del mismo artículo simultáneamente.
+                        </div>
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" onclick="guardarNuevoElemento()">Crear elemento</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+    <!-- MODAL: PUBLICAR NUEVA VERSIÓN (Requisito #6)  -->
+    
+    <div class="modal fade" id="modalNuevaVersion" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title"><i class="fas fa-code-branch me-2"></i>Publicar nueva versión</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="version_id_elemento">
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Atención:</strong> Al publicar una nueva versión, la versión actual pasará a ser <strong>HISTÓRICA</strong>.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Elemento:</label>
+                        <div class="bg-light p-2 rounded" id="version_info_elemento">-</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nuevo contenido:</label>
+                        <textarea class="form-control" id="version_nuevo_contenido" rows="8" placeholder="Escriba el nuevo texto del artículo..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Número de Acuerdo/Resolución que aprueba esta reforma:</label>
+                        <input type="text" class="form-control" id="version_acuerdo" placeholder="Ej: AIR-99-2024">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de inicio de vigencia:</label>
+                        <input type="date" class="form-control" id="version_nueva_fecha" value="">
+                    </div>
+
+                    <div class="modal-footer px-0 pb-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" onclick="publicarNuevaVersion()">Publicar nueva versión</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Variables globales
+        let currentActiveNode = null;
+        let currentElementoId = null;
+
+        // Datos mock del árbol (estructura jerárquica)
+        let arbolData = [
+            {
+                id: 2,
+                numero: "TÍTULO I",
+                titulo: "Disposiciones Generales",
+                resumen: "Principios y ámbito de aplicación",
+                estado: "vigente",
+                hijos: [
+                    { id: 3, numero: "Artículo 1", titulo: "Objeto", resumen: "El presente reglamento tiene por objeto...", estado: "vigente", hijos: [] },
+                    { id: 4, numero: "Artículo 2", titulo: "Ámbito de aplicación", resumen: "Aplica a todos los miembros...", estado: "vigente", hijos: [] },
+                    { id: 5, numero: "Artículo 3", titulo: "Principios rectores", resumen: "Democracia, transparencia...", estado: "historico", hijos: [] }
+                ]
+            },
+            {
+                id: 6,
+                numero: "TÍTULO II",
+                titulo: "De los Asambleístas",
+                resumen: "Derechos, deberes y nombramientos",
+                estado: "vigente",
+                hijos: [
+                    { id: 7, numero: "Artículo 10", titulo: "Derechos", resumen: "Los asambleístas tienen derecho a...", estado: "vigente", hijos: [] },
+                    { id: 8, numero: "Artículo 11", titulo: "Deberes", resumen: "Son deberes de los asambleístas...", estado: "vigente", hijos: [] },
+                    { 
+                        id: 9, numero: "Artículo 12", titulo: "Nombramientos", resumen: "Procedimiento de nombramiento", estado: "vigente",
+                        hijos: [
+                            { id: 10, numero: "Inciso a", titulo: "Requisitos", resumen: "Para ser nombrado se requiere...", estado: "vigente", hijos: [] },
+                            { id: 11, numero: "Inciso b", titulo: "Periodo", resumen: "El periodo será de...", estado: "vigente", hijos: [] }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 12,
+                numero: "TÍTULO III",
+                titulo: "De las Sesiones",
+                resumen: "Convocatoria, quórum y votaciones",
+                estado: "vigente",
+                hijos: [
+                    { id: 13, numero: "Artículo 20", titulo: "Convocatoria", resumen: "La convocatoria se realizará...", estado: "vigente", hijos: [] },
+                    { id: 14, numero: "Artículo 21", titulo: "Quórum", resumen: "El quórum mínimo será...", estado: "vigente", hijos: [] }
+                ]
+            }
+        ];
+
+        // Contenido detallado de cada elemento
+        let contenidosData = {
+            1: { contenido: "Reglamento General de la Asamblea Institucional Representativa del TEC. Aprobado en sesión extraordinaria N° AIR-001-2020.", vigencia_inicio: "2020-03-15", vigencia_fin: null, estado: "vigente", reformas: [] },
+            2: { contenido: "Las disposiciones del presente Reglamento son de orden público y de observancia general en todo el ámbito institucional.", vigencia_inicio: "2020-03-15", vigencia_fin: null, estado: "vigente", reformas: [] },
+            3: { contenido: "El objeto del presente Reglamento es regular el funcionamiento de la Asamblea Institucional Representativa, estableciendo sus competencias, organización y procedimientos de toma de decisiones.", vigencia_inicio: "2020-03-15", vigencia_fin: null, estado: "vigente", reformas: [] },
+            4: { contenido: "Este Reglamento es aplicable a todos los miembros de la Asamblea, así como a las comisiones que de ella se deriven.", vigencia_inicio: "2020-03-15", vigencia_fin: null, estado: "vigente", reformas: [] },
+            5: { contenido: "La Asamblea se rige por los principios de: a) Democracia participativa; b) Transparencia; c) Publicidad de los actos; d) Rendición de cuentas.", vigencia_inicio: "2020-03-15", vigencia_fin: "2023-12-31", estado: "historico", reformas: [{ fecha: "2023-12-31", descripcion: "Sustituido por nueva versión" }] },
+            6: { contenido: "Derogado por reforma del 2024", vigencia_inicio: "2020-03-15", vigencia_fin: "2024-01-15", estado: "historico", reformas: [] }
+        };
+
+        function loadSharedComponents() {
+            const navbarHtml = `
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="#"><i class="fas fa-gavel me-2"></i>AIR - Sistema Normativo</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav ms-auto">
+                                <li class="nav-item"><a class="nav-link" href="/asambleistas"><i class="fas fa-users me-1"></i> Asambleístas</a></li>
+                                <li class="nav-item"><a class="nav-link active" href="/normativa/arbol"><i class="fas fa-book me-1"></i> Normativa</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/compilador"><i class="fas fa-code-branch me-1"></i> Compilador</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/certificaciones"><i class="fas fa-certificate me-1"></i> Certificaciones</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+            `;
+            const footerHtml = `
+                <footer class="text-center text-muted py-3 mt-4 border-top">
+                    <small>Asamblea Institucional Representativa - TEC | Sistema de Gestión Legislativa</small>
+                </footer>
+            `;
+            document.getElementById('navbar-placeholder').innerHTML = navbarHtml;
+            document.getElementById('footer-placeholder').innerHTML = footerHtml;
+        }
+
+        function renderTree(nodes, parentElement, level = 0) {
+            if (!nodes || nodes.length === 0) return;
+            
+            nodes.forEach(node => {
+                const li = document.createElement('li');
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'tree-node';
+                nodeDiv.setAttribute('data-id', node.id);
+                nodeDiv.setAttribute('data-numero', node.numero);
+                nodeDiv.setAttribute('data-titulo', node.titulo);
+                nodeDiv.setAttribute('data-estado', node.estado);
+                
+                const badge = node.estado === 'vigente' ? 
+                    '<span class="badge-vigente">VIGENTE</span>' : 
+                    '<span class="badge-historico">HISTÓRICO</span>';
+                
+                nodeDiv.innerHTML = `
+                    <span class="articulo-numero">${node.numero}</span>
+                    <span class="articulo-titulo">${node.titulo}</span>
+                    <div class="articulo-resumen">${node.resumen || 'Sin descripción'}</div>
+                    ${badge}
+                `;
+                
+                nodeDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    loadArticuloContent(node.id, node.numero, node.titulo);
+                    setActiveNode(nodeDiv);
+                };
+                
+                li.appendChild(nodeDiv);
+                
+                if (node.hijos && node.hijos.length > 0) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'tree-submenu';
+                    ul.style.display = 'block';
+                    renderTree(node.hijos, ul, level + 1);
+                    li.appendChild(ul);
+                    
+                    // Doble clic para colapsar
+                    nodeDiv.ondblclick = (e) => {
+                        e.stopPropagation();
+                        const submenu = li.querySelector('ul');
+                        if (submenu) {
+                            submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
+                        }
+                    };
+                }
+                
+                parentElement.appendChild(li);
+            });
+        }
+
+        function setActiveNode(nodeElement) {
+            if (currentActiveNode) {
+                currentActiveNode.classList.remove('active');
+            }
+            nodeElement.classList.add('active');
+            currentActiveNode = nodeElement;
+            currentElementoId = nodeElement.getAttribute('data-id');
+        }
+
+        function loadArticuloContent(id, numero, titulo) {
+            const loadingContent = document.getElementById('loading-content');
+            const contenidoInicial = document.getElementById('contenido-inicial');
+            const contenidoArticulo = document.getElementById('contenido-articulo');
+            
+            loadingContent.style.display = 'block';
+            contenidoInicial.style.display = 'none';
+            contenidoArticulo.style.display = 'none';
+            
+            setTimeout(() => {
+                const data = contenidosData[id] || {
+                    contenido: `Contenido del ${numero}: ${titulo}. Esta es una disposición normativa vigente.`,
+                    vigencia_inicio: "2024-01-01",
+                    vigencia_fin: null,
+                    estado: "vigente",
+                    reformas: []
+                };
+                
+                renderArticuloContent(data, id, numero, titulo);
+                loadingContent.style.display = 'none';
+                contenidoArticulo.style.display = 'block';
+            }, 300);
+        }
+
+        function renderArticuloContent(data, id, numero, titulo) {
+            const container = document.getElementById('contenido-articulo');
+            const estadoBadge = data.estado === 'vigente' ? 
+                '<span class="badge-vigente">VIGENTE</span>' : 
+                '<span class="badge-historico">HISTÓRICO</span>';
+            
+            container.innerHTML = `
+                <div class="mb-4">
+                    <h2>${numero} - ${titulo} ${estadoBadge}</h2>
+                    <div class="breadcrumb-custom bg-light p-3 rounded">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        <strong>Vigencia:</strong> Desde: ${data.vigencia_inicio || 'No especificada'}
+                        ${data.vigencia_fin ? ` | Hasta: ${data.vigencia_fin}` : ' | <span class="text-success">Actualidad</span>'}
+                    </div>
+                </div>
+                
+                <div class="articulo-contenido">
+                    <h5><i class="fas fa-align-left me-2 text-muted"></i>Contenido</h5>
+                    <div class="p-3 bg-light rounded">${data.contenido}</div>
+                </div>
+                
+                ${data.reformas && data.reformas.length > 0 ? `
+                <div class="mt-4">
+                    <h6><i class="fas fa-history me-2"></i>Historial de Reformas</h6>
+                    <ul class="list-group">
+                        ${data.reformas.map(r => `<li class="list-group-item">${r.fecha}: ${r.descripcion}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                <div class="mt-4 d-flex gap-2">
+                    <button class="btn btn-warning" onclick="abrirModalNuevaVersion(${id}, '${numero}', '${titulo}')">
+                        <i class="fas fa-code-branch me-1"></i> Publicar nueva versión
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="abrirModalEditar(${id})">
+                        <i class="fas fa-edit me-1"></i> Editar
+                    </button>
+                </div>
+            `;
+        }
+
+        function abrirModalNuevaVersion(id, numero, titulo) {
+            document.getElementById('version_id_elemento').value = id;
+            document.getElementById('version_info_elemento').innerHTML = `<strong>${numero} - ${titulo}</strong>`;
+            document.getElementById('version_nuevo_contenido').value = contenidosData[id]?.contenido || '';
+            document.getElementById('version_nueva_fecha').value = new Date().toISOString().split('T')[0];
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalNuevaVersion'));
+            modal.show();
+        }
+
+        function publicarNuevaVersion() {
+            const id = document.getElementById('version_id_elemento').value;
+            const nuevoContenido = document.getElementById('version_nuevo_contenido').value;
+            const acuerdo = document.getElementById('version_acuerdo').value;
+            const nuevaFecha = document.getElementById('version_nueva_fecha').value;
+            
+            if (!nuevoContenido) {
+                alert('Debe ingresar el nuevo contenido');
+                return;
+            }
+            
+            // Marcar la versión actual como histórica
+            if (contenidosData[id]) {
+                contenidosData[id].estado = 'historico';
+                contenidosData[id].vigencia_fin = nuevaFecha;
+                if (!contenidosData[id].reformas) contenidosData[id].reformas = [];
+                contenidosData[id].reformas.push({
+                    fecha: nuevaFecha,
+                    descripcion: `Reforma aprobada mediante ${acuerdo || 'acuerdo institucional'}`
+                });
+            }
+            
+            // Crear nuevo ID para la nueva versión
+            const nuevoId = Math.max(...Object.keys(contenidosData).map(Number)) + 1;
+            contenidosData[nuevoId] = {
+                contenido: nuevoContenido,
+                vigencia_inicio: nuevaFecha,
+                vigencia_fin: null,
+                estado: "vigente",
+                reformas: []
+            };
+            
+            alert(` Nueva versión publicada.\n${acuerdo ? `Acuerdo: ${acuerdo}\n` : ''}Vigencia a partir de: ${nuevaFecha}\nLa versión anterior ha sido marcada como HISTÓRICA.`);
+            
+            const modalElement = document.getElementById('modalNuevaVersion');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            modal.hide();
+            
+            // Recargar el contenido mostrado
+            if (currentElementoId) {
+                const node = document.querySelector(`.tree-node[data-id="${currentElementoId}"]`);
+                if (node) {
+                    const numero = node.getAttribute('data-numero');
+                    const titulo = node.getAttribute('data-titulo');
+                    loadArticuloContent(currentElementoId, numero, titulo);
+                }
+            }
+            
+            document.getElementById('version_acuerdo').value = '';
+        }
+
+        function guardarNuevoElemento() {
+            const nivel = document.getElementById('nivel_elemento').value;
+            const numero = document.getElementById('numero_elemento').value;
+            const padre = document.getElementById('padre_elemento').value;
+            const titulo = document.getElementById('titulo_elemento').value;
+            const contenido = document.getElementById('contenido_elemento').value;
+            const fechaVigencia = document.getElementById('fecha_vigencia').value;
+            const esVigente = document.getElementById('es_vigente').checked;
+            
+            if (!numero || !titulo) {
+                alert('Complete los campos obligatorios');
+                return;
+            }
+            
+            const nuevoId = Math.max(...Object.keys(contenidosData).map(Number)) + 1;
+            
+            contenidosData[nuevoId] = {
+                contenido: contenido || `Contenido del ${numero}: ${titulo}`,
+                vigencia_inicio: fechaVigencia,
+                vigencia_fin: null,
+                estado: esVigente ? 'vigente' : 'historico',
+                reformas: []
+            };
+            
+            alert(`Elemento creado: ${nivel} ${numero} - ${titulo}\n${padre ? `Dentro de: ${padre}` : 'Elemento raíz'}`);
+            
+            const modalElement = document.getElementById('modalNuevoElemento');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            modal.hide();
+            
+            document.getElementById('formNuevoElemento').reset();
+        }
+
+        function abrirModalEditar(id) {
+            alert(`Función de edición - Elemento ID: ${id}\n(Implementar en Sprint 3 con conexión a BD)`);
+        }
+
+        // Búsqueda
+        document.getElementById('search-articulo').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const allNodes = document.querySelectorAll('.tree-node');
+            
+            allNodes.forEach(node => {
+                const numero = node.getAttribute('data-numero')?.toLowerCase() || '';
+                const titulo = node.getAttribute('data-titulo')?.toLowerCase() || '';
+                const match = numero.includes(searchTerm) || titulo.includes(searchTerm);
+                
+                if (searchTerm === '') {
+                    node.style.display = '';
+                } else if (match) {
+                    node.style.display = '';
+                    let parent = node.closest('li')?.parentElement?.closest('li');
+                    while (parent) {
+                        const submenu = parent.querySelector('ul');
+                        if (submenu) submenu.style.display = 'block';
+                        parent = parent.parentElement?.closest('li');
+                    }
+                } else {
+                    node.style.display = 'none';
+                }
+            });
+        });
+
+        // Expandir/Colapsar todo
+        let expandido = true;
+        document.getElementById('btn-expandir-todo').addEventListener('click', () => {
+            const allSubmenus = document.querySelectorAll('.tree-submenu');
+            allSubmenus.forEach(submenu => {
+                submenu.style.display = expandido ? 'none' : 'block';
+            });
+            expandido = !expandido;
+        });
+
+        function loadTree() {
+            const container = document.getElementById('root-children');
+            renderTree(arbolData, container);
+        }
+
+        loadSharedComponents();
+        loadTree();
+    </script>
+</body>
+</html>
