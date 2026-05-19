@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Listado de Asambleístas</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .badge-verde { background-color: green; color: white; padding: 3px 8px; border-radius: 5px; font-size: 12px; }
+        .badge-gris { background-color: gray; color: white; padding: 3px 8px; border-radius: 5px; font-size: 12px; }
+        button { padding: 5px 10px; margin: 2px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1> Listado de Asambleístas - AIR</h1>
+
+    <!-- ============================================= -->
+    <!-- BUSCADOR                                      -->
+    <!-- ============================================= -->
+    <h2> Buscar asambleístas</h2>
+    <form onsubmit="buscarAsambleista(); return false;">
+        <input type="text" id="buscar-texto" placeholder="Buscar por nombre o cédula" style="width: 250px;">
+        <button type="submit">Buscar</button>
+        <button type="button" onclick="cargarListaCompleta()">Mostrar todos</button>
+        <a href="/asambleistas/registro"><button type="button">+ Nuevo Asambleísta</button></a>
+    </form>
+
+    <hr>
+
+    <!-- ============================================= -->
+    <!-- LISTADO DE ASAMBLEÍSTAS                       -->
+    <!-- ============================================= -->
+    <h2> Listado de asambleístas</h2>
+    <table id="tabla-asambleistas">
+        <thead>
+            <tr><th>ID</th><th>Cédula</th><th>Nombre</th><th>Correo</th><th>Estado Nombramiento</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="lista-asambleistas">
+            <!-- Los datos se cargarán dinámicamente con JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+        // Datos de ejemplo (esto vendrá del controlador en el backend real)
+        let asambleistasData = [
+            { id: 1, cedula: "1-2345-6789", nombre: "Ana María Rodríguez Mora", correo: "arodriguez@tec.ac.cr", tieneNombramientoVigente: true },
+            { id: 2, cedula: "2-3456-7890", nombre: "Carlos Jiménez Solano", correo: "cjimenez@tec.ac.cr", tieneNombramientoVigente: false },
+            { id: 3, cedula: "3-4567-8901", nombre: "María Fernanda Vargas", correo: "mvargas@tec.ac.cr", tieneNombramientoVigente: true }
+        ];
+        
+        function cargarListaCompleta() {
+            let tbody = document.getElementById('lista-asambleistas');
+            tbody.innerHTML = '';
+            asambleistasData.forEach(a => {
+                let row = tbody.insertRow();
+                row.insertCell(0).innerText = a.id;
+                row.insertCell(1).innerText = a.cedula;
+                row.insertCell(2).innerText = a.nombre;
+                row.insertCell(3).innerText = a.correo;
+                row.insertCell(4).innerHTML = a.tieneNombramientoVigente ? 
+                    '<span class="badge-verde">VIGENTE</span>' : 
+                    '<span class="badge-gris">SIN NOMBRAMIENTO</span>';
+                row.insertCell(5).innerHTML = `
+                    <a href="/asambleistas/editar/${a.id}"><button> Editar</button></a>
+                    <a href="/asambleistas/nombramientos/${a.id}"><button> Nombramientos</button></a>
+                `;
+            });
+        }
+        
+        function buscarAsambleista() {
+            let texto = document.getElementById('buscar-texto').value.toLowerCase();
+            let tbody = document.getElementById('lista-asambleistas');
+            tbody.innerHTML = '';
+            let filtrados = asambleistasData.filter(a => 
+                a.nombre.toLowerCase().includes(texto) || a.cedula.includes(texto)
+            );
+            filtrados.forEach(a => {
+                let row = tbody.insertRow();
+                row.insertCell(0).innerText = a.id;
+                row.insertCell(1).innerText = a.cedula;
+                row.insertCell(2).innerText = a.nombre;
+                row.insertCell(3).innerText = a.correo;
+                row.insertCell(4).innerHTML = a.tieneNombramientoVigente ? 
+                    '<span class="badge-verde">VIGENTE</span>' : 
+                    '<span class="badge-gris">SIN NOMBRAMIENTO</span>';
+                row.insertCell(5).innerHTML = `
+                    <a href="/asambleistas/editar/${a.id}"><button> Editar</button></a>
+                    <a href="/asambleistas/nombramientos/${a.id}"><button> Nombramientos</button></a>
+                `;
+            });
+        }
+        
+        // Cargar datos iniciales
+        cargarListaCompleta();
+    </script>
+</body>
+</html>
