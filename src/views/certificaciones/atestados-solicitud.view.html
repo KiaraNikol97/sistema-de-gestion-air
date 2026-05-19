@@ -1,0 +1,452 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Atestados - Certificaciones AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f5f7fb;
+        }
+        .solicitud-card {
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        .solicitud-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+        }
+        .info-asambleista {
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #1e3c72;
+        }
+        .participacion-card {
+            border-left: 4px solid #28a745;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        .participacion-card:hover {
+            transform: translateX(5px);
+        }
+        .badge-asistencia {
+            background-color: #28a745;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .badge-propuesta {
+            background-color: #17a2b8;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .badge-comision {
+            background-color: #fd7e14;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        .btn-preview {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            color: white;
+        }
+        .btn-preview:hover {
+            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+        }
+        .resultado-badge {
+            font-size: 1rem;
+            padding: 8px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-file-alt me-2"></i>Solicitud de Atestados</h1>
+            <p class="text-muted mb-0">Generar certificación de participación para asambleístas</p>
+        </div>
+
+        <!-- Formulario de Solicitud -->
+        <div class="solicitud-card">
+            <div class="solicitud-header">
+                <h3 class="mb-1"><i class="fas fa-search me-2"></i>Datos de la Solicitud</h3>
+                <small>Complete los campos para generar el atestado</small>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold"><i class="fas fa-user me-1"></i> Asambleísta</label>
+                        <select id="asambleista-select" class="form-select">
+                            <option value="">-- Seleccionar asambleísta --</option>
+                            <option value="1">Ana María Rodríguez Mora (1-2345-6789) - Docencia</option>
+                            <option value="2">Carlos Jiménez Solano (2-3456-7890) - Administración</option>
+                            <option value="3">María Fernanda Vargas (3-4567-8901) - Estudiantil</option>
+                            <option value="4">Luis Gómez Gutiérrez (4-5678-9012) - Docencia</option>
+                            <option value="5">Rosa Fernández Pérez (5-6789-0123) - Administración</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold"><i class="fas fa-calendar-alt me-1"></i> Fecha Desde</label>
+                        <input type="date" id="fecha_desde" class="form-control" value="2024-01-01">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold"><i class="fas fa-calendar-alt me-1"></i> Fecha Hasta</label>
+                        <input type="date" id="fecha_hasta" class="form-control" value="2025-12-31">
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <button id="btn-consultar" class="btn-preview">
+                        <i class="fas fa-search me-2"></i> Consultar Atestados
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Consultando historial del asambleísta...</p>
+        </div>
+
+        <!-- Resultados de la consulta (Previsualización) -->
+        <div id="resultados-container" style="display: none;">
+            <!-- Información del Asambleísta -->
+            <div class="info-asambleista">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h3 id="asambleista-nombre" class="mb-1">-</h3>
+                        <p class="mb-0 text-muted">
+                            <i class="fas fa-id-card me-1"></i> Cédula: <span id="asambleista-cedula">-</span>
+                            <span class="mx-2">|</span>
+                            <i class="fas fa-building me-1"></i> Sector: <span id="asambleista-sector">-</span>
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <span class="badge-asistencia" id="asistencia-badge">
+                            <i class="fas fa-calendar-check me-1"></i> Asistencia: 0%
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen de Participación -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-calendar-check fa-2x text-success mb-2"></i>
+                            <h3 id="total-sesiones">0</h3>
+                            <p class="text-muted mb-0">Sesiones Asistidas</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-file-alt fa-2x text-info mb-2"></i>
+                            <h3 id="total-propuestas">0</h3>
+                            <p class="text-muted mb-0">Propuestas Participadas</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-users fa-2x text-warning mb-2"></i>
+                            <h3 id="total-comisiones">0</h3>
+                            <p class="text-muted mb-0">Comisiones Integradas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle de Sesiones -->
+            <div class="card mb-4">
+                <div class="card-header bg-white fw-bold">
+                    <i class="fas fa-calendar-alt me-1 text-success"></i> Asistencia a Sesiones
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>Fecha</th><th>Sesión</th><th>Tipo</th><th>Asistió</th></tr>
+                            </thead>
+                            <tbody id="sesiones-tbody">
+                                <!-- Datos dinámicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle de Propuestas -->
+            <div class="card mb-4">
+                <div class="card-header bg-white fw-bold">
+                    <i class="fas fa-file-alt me-1 text-info"></i> Propuestas Participadas
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>Fecha</th><th>Propuesta</th><th>Rol</th><th>Estado</th></tr>
+                            </thead>
+                            <tbody id="propuestas-tbody">
+                                <!-- Datos dinámicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle de Comisiones -->
+            <div class="card mb-4">
+                <div class="card-header bg-white fw-bold">
+                    <i class="fas fa-users me-1 text-warning"></i> Comisiones Integradas
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>Fecha Inicio</th><th>Fecha Fin</th><th>Comisión</th><th>Rol</th></tr>
+                            </thead>
+                            <tbody id="comisiones-tbody">
+                                <!-- Datos dinámicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="text-end mt-4">
+                <button id="btn-generar-certificado" class="btn-preview">
+                    <i class="fas fa-file-pdf me-2"></i> Generar Certificado Oficial
+                </button>
+                <button id="btn-limpiar" class="btn btn-secondary ms-2">
+                    <i class="fas fa-eraser me-1"></i> Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Datos de ejemplo
+        const datosAsambleistas = {
+            1: {
+                id: 1,
+                nombre: "Ana María Rodríguez Mora",
+                cedula: "1-2345-6789",
+                sector: "Docencia",
+                asistencia: [
+                    { fecha: "2024-01-15", sesion: "Ordinaria AIR-01-2024", tipo: "Ordinaria", asistio: true },
+                    { fecha: "2024-02-10", sesion: "Ordinaria AIR-02-2024", tipo: "Ordinaria", asistio: true },
+                    { fecha: "2024-03-05", sesion: "Extraordinaria AIR-03-2024", tipo: "Extraordinaria", asistio: true },
+                    { fecha: "2024-04-20", sesion: "Ordinaria AIR-04-2024", tipo: "Ordinaria", asistio: false },
+                    { fecha: "2024-05-15", sesion: "Ordinaria AIR-05-2024", tipo: "Ordinaria", asistio: true }
+                ],
+                propuestas: [
+                    { fecha: "2024-02-10", titulo: "Reforma al Artículo 5 del Estatuto", rol: "Proponente", estado: "Aprobada" },
+                    { fecha: "2024-03-05", titulo: "Políticas Generales 2024-2028", rol: "Co-proponente", estado: "Aprobada" },
+                    { fecha: "2024-04-20", titulo: "Creación de Comisión de Ética", rol: "Miembro comisión", estado: "En discusión" }
+                ],
+                comisiones: [
+                    { fecha_inicio: "2024-01-20", fecha_fin: null, nombre: "Comisión de Reforma Estatutaria", rol: "Coordinadora" },
+                    { fecha_inicio: "2024-02-15", fecha_fin: "2024-12-31", nombre: "Comisión de Políticas Generales", rol: "Secretaria" }
+                ]
+            },
+            2: {
+                id: 2,
+                nombre: "Carlos Jiménez Solano",
+                cedula: "2-3456-7890",
+                sector: "Administración",
+                asistencia: [
+                    { fecha: "2024-01-15", sesion: "Ordinaria AIR-01-2024", tipo: "Ordinaria", asistio: true },
+                    { fecha: "2024-02-10", sesion: "Ordinaria AIR-02-2024", tipo: "Ordinaria", asistio: false },
+                    { fecha: "2024-03-05", sesion: "Extraordinaria AIR-03-2024", tipo: "Extraordinaria", asistio: true },
+                    { fecha: "2024-04-20", sesion: "Ordinaria AIR-04-2024", tipo: "Ordinaria", asistio: true },
+                    { fecha: "2024-05-15", sesion: "Ordinaria AIR-05-2024", tipo: "Ordinaria", asistio: true }
+                ],
+                propuestas: [
+                    { fecha: "2024-01-15", titulo: "Reglamento de Teletrabajo", rol: "Proponente", estado: "Aprobada" }
+                ],
+                comisiones: [
+                    { fecha_inicio: "2024-03-01", fecha_fin: null, nombre: "Comisión Administrativa", rol: "Miembro" }
+                ]
+            }
+        };
+
+        let currentAsambleistaId = null;
+
+        function loadSharedComponents() {
+            document.getElementById('navbar-placeholder').innerHTML = `
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <div class="container">
+                        <a class="navbar-brand" href="#"><i class="fas fa-gavel me-2"></i>AIR - Sistema Legislativo</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav ms-auto">
+                                <li class="nav-item"><a class="nav-link" href="/asambleistas">Asambleístas</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/normativa/arbol">Normativa</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/sesiones">Sesiones</a></li>
+                                <li class="nav-item"><a class="nav-link active" href="/certificaciones">Certificaciones</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+            `;
+            document.getElementById('footer-placeholder').innerHTML = `
+                <footer class="text-center text-muted py-3 mt-4 border-top">
+                    <small>Asamblea Institucional Representativa - TEC | Sistema de Gestión Legislativa</small>
+                </footer>
+            `;
+        }
+
+        function consultarAtestados() {
+            const asambleistaId = document.getElementById('asambleista-select').value;
+            const fechaDesde = document.getElementById('fecha_desde').value;
+            const fechaHasta = document.getElementById('fecha_hasta').value;
+            
+            if (!asambleistaId) {
+                alert('Por favor seleccione un asambleísta');
+                return;
+            }
+            
+            currentAsambleistaId = asambleistaId;
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultados-container').style.display = 'none';
+            
+            setTimeout(() => {
+                const data = datosAsambleistas[asambleistaId];
+                if (data) {
+                    mostrarResultados(data, fechaDesde, fechaHasta);
+                } else {
+                    alert('No se encontraron datos para este asambleísta');
+                }
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('resultados-container').style.display = 'block';
+            }, 500);
+        }
+
+        function mostrarResultados(data, fechaDesde, fechaHasta) {
+            // Información básica
+            document.getElementById('asambleista-nombre').innerText = data.nombre;
+            document.getElementById('asambleista-cedula').innerText = data.cedula;
+            document.getElementById('asambleista-sector').innerText = data.sector;
+            
+            // Filtrar por fechas
+            const asistenciaFiltrada = data.asistencia.filter(a => {
+                const fecha = new Date(a.fecha);
+                return fecha >= new Date(fechaDesde) && fecha <= new Date(fechaHasta);
+            });
+            
+            const asistencias = asistenciaFiltrada.filter(a => a.asistio).length;
+            const totalSesiones = asistenciaFiltrada.length;
+            const porcentajeAsistencia = totalSesiones > 0 ? Math.round((asistencias / totalSesiones) * 100) : 0;
+            
+            document.getElementById('total-sesiones').innerText = asistencias;
+            document.getElementById('asistencia-badge').innerHTML = `<i class="fas fa-calendar-check me-1"></i> Asistencia: ${porcentajeAsistencia}%`;
+            document.getElementById('total-propuestas').innerText = data.propuestas.length;
+            document.getElementById('total-comisiones').innerText = data.comisiones.length;
+            
+            // Tabla de sesiones
+            const sesionesTbody = document.getElementById('sesiones-tbody');
+            sesionesTbody.innerHTML = '';
+            asistenciaFiltrada.forEach(s => {
+                const row = sesionesTbody.insertRow();
+                row.insertCell(0).innerText = s.fecha;
+                row.insertCell(1).innerText = s.sesion;
+                row.insertCell(2).innerText = s.tipo;
+                row.insertCell(3).innerHTML = s.asistio ? 
+                    '<span class="text-success"><i class="fas fa-check-circle"></i> Sí</span>' : 
+                    '<span class="text-danger"><i class="fas fa-times-circle"></i> No</span>';
+            });
+            
+            // Tabla de propuestas
+            const propuestasTbody = document.getElementById('propuestas-tbody');
+            propuestasTbody.innerHTML = '';
+            data.propuestas.forEach(p => {
+                const row = propuestasTbody.insertRow();
+                row.insertCell(0).innerText = p.fecha;
+                row.insertCell(1).innerText = p.titulo;
+                row.insertCell(2).innerHTML = `<span class="badge-propuesta">${p.rol}</span>`;
+                row.insertCell(3).innerHTML = p.estado === 'Aprobada' ? 
+                    '<span class="badge-asistencia">Aprobada</span>' : 
+                    '<span class="badge-comision">En discusión</span>';
+            });
+            
+            // Tabla de comisiones
+            const comisionesTbody = document.getElementById('comisiones-tbody');
+            comisionesTbody.innerHTML = '';
+            data.comisiones.forEach(c => {
+                const row = comisionesTbody.insertRow();
+                row.insertCell(0).innerText = c.fecha_inicio;
+                row.insertCell(1).innerText = c.fecha_fin || 'Actualidad';
+                row.insertCell(2).innerText = c.nombre;
+                row.insertCell(3).innerHTML = `<span class="badge-comision">${c.rol}</span>`;
+            });
+        }
+
+        function generarCertificado() {
+            if (!currentAsambleistaId) {
+                alert('Primero consulte los atestados de un asambleísta');
+                return;
+            }
+            
+            const data = datosAsambleistas[currentAsambleistaId];
+            if (data) {
+                // Guardar datos en localStorage para pasarlos al certificado final
+                const certificadoData = {
+                    asambleista: data,
+                    fecha_emision: new Date().toLocaleDateString('es-ES'),
+                    folio: `DAIR-${Math.floor(Math.random() * 100).toString().padStart(3, '0')}-${new Date().getFullYear()}`
+                };
+                localStorage.setItem('certificadoData', JSON.stringify(certificadoData));
+                
+                // Redirigir al certificado final
+                window.location.href = '/views/certificaciones/certificado-final.view.html';
+            }
+        }
+
+        function limpiar() {
+            document.getElementById('asambleista-select').value = '';
+            document.getElementById('resultados-container').style.display = 'none';
+            currentAsambleistaId = null;
+        }
+
+        document.getElementById('btn-consultar').addEventListener('click', consultarAtestados);
+        document.getElementById('btn-generar-certificado').addEventListener('click', generarCertificado);
+        document.getElementById('btn-limpiar').addEventListener('click', limpiar);
+
+        loadSharedComponents();
+    </script>
+</body>
+</html>
