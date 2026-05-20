@@ -1,254 +1,566 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Registro de Asambleístas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Asambleístas - AIR</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .badge-verde { background-color: green; color: white; padding: 3px 8px; border-radius: 5px; font-size: 12px; }
-        .badge-gris { background-color: gray; color: white; padding: 3px 8px; border-radius: 5px; font-size: 12px; }
-        .form-group { margin-bottom: 15px; }
-        button { padding: 5px 10px; margin: 2px; cursor: pointer; }
-        input, select { padding: 5px; width: 300px; }
-        hr { margin: 20px 0; }
-        .seccion { border: 1px solid #ccc; padding: 15px; margin: 20px 0; border-radius: 5px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f5f7fb;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-container {
+            flex: 1;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+            background-color: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #1e3c72;
+        }
+
+        .badge-verde {
+            background-color: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-gris {
+            background-color: #6c757d;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin: 2px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        input, select {
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        hr {
+            margin: 20px 0;
+        }
+
+        .seccion {
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 12px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .seccion h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+        }
+
+        .volver-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        .volver-link:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .error-msg {
+            background-color: #fee2e2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc2626;
+        }
+
+        .success-msg {
+            background-color: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #10b981;
+        }
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <div id="navbar-placeholder"></div>
 
-    <h1> Gestión de Asambleístas - AIR</h1>
-    <a href="/asambleistas">← Volver al listado</a>
+    <div class="main-container">
+        <a href="/asambleistas" class="volver-link">← Volver al listado</a>
 
-    <!-- SECCIÓN 1: DATOS PERSONALES (Registro/Edición)-->
- 
-    <div class="seccion">
-        <h2 id="form-titulo">📝 Registrar asambleísta</h2>
-        <form action="/asambleistas/guardar" method="POST" id="asambleista-form" onsubmit="return false;">
-            <input type="hidden" id="asambleista_id" name="asambleista_id">
+        <!-- Mensajes -->
+        <div id="error-msg" class="error-msg" style="display: none;"></div>
+        <div id="success-msg" class="success-msg" style="display: none;"></div>
+
+        <!-- SECCIÓN 1: DATOS PERSONALES -->
+        <div class="seccion">
+            <h2 id="form-titulo"> Registrar asambleísta</h2>
+            <form id="asambleista-form" onsubmit="return false;">
+                <input type="hidden" id="asambleista_id" name="asambleista_id">
+                
+                <div class="form-group">
+                    <label>Nombre completo:</label><br>
+                    <input type="text" id="nombre" name="nombre" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Cédula:</label><br>
+                    <input type="text" id="cedula" name="cedula" placeholder="0-0000-0000" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Correo institucional:</label><br>
+                    <input type="email" id="correo" name="correo" placeholder="usuario@tec.ac.cr">
+                </div>
+                
+                <button type="button" class="btn-primary" id="btn-submit" onclick="guardarAsambleista()">Registrar</button>
+                <button type="button" class="btn-secondary" id="btn-cancelar" style="display:none;" onclick="cancelarEdicion()">Cancelar</button>
+            </form>
+        </div>
+
+        <!-- SECCIÓN 2: NOMBRAMIENTOS -->
+        <div class="seccion" id="nombramientos-section" style="display:none;">
+            <h2> Gestión de nombramientos</h2>
+            <input type="hidden" id="nombramiento_asambleista_id">
             
+            <h3>Nombramientos actuales</h3>
+            <div id="nombramientos-loading" class="loading" style="display: none;">Cargando nombramientos...</div>
+            <table style="width:100%">
+                <thead>
+                    <tr><th>Sector</th><th>Puesto</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Estado</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="nombramientos-lista">
+                    <tr><td colspan="6" style="text-align: center;">Seleccione un asambleísta para ver sus nombramientos</td></tr>
+                </tbody>
+            </table>
+
+            <hr>
+
+            <h3> Agregar nuevo nombramiento</h3>
             <div class="form-group">
-                <label>Nombre completo:</label><br>
-                <input type="text" id="nombre" name="nombre" required>
+                <label>Sector:</label><br>
+                <select id="nombramiento_sector">
+                    <option value="">-- Seleccione --</option>
+                </select>
             </div>
             
             <div class="form-group">
-                <label>Cédula:</label><br>
-                <input type="text" id="cedula" name="cedula" placeholder="0-0000-0000" required>
+                <label>Puesto:</label><br>
+                <select id="nombramiento_puesto">
+                    <option value="">-- Seleccione --</option>
+                </select>
             </div>
             
             <div class="form-group">
-                <label>Correo institucional:</label><br>
-                <input type="email" id="correo" name="correo" placeholder="usuario@tec.ac.cr">
+                <label>Fecha inicio:</label><br>
+                <input type="date" id="nombramiento_fecha_inicio">
             </div>
             
-            <button type="button" id="btn-submit" onclick="guardarAsambleista()">Registrar</button>
-            <button type="button" id="btn-cancelar" style="display:none;" onclick="cancelarEdicion()">Cancelar</button>
-        </form>
+            <div class="form-group">
+                <label>Fecha fin (dejar vacío si es vigente):</label><br>
+                <input type="date" id="nombramiento_fecha_fin">
+            </div>
+            
+            <button class="btn-success" onclick="agregarNombramiento()">Agregar nombramiento</button>
+        </div>
     </div>
 
-    <!-- SECCIÓN 2: NOMBRAMIENTOS (Requisito #3 y #7)  -->
- 
-    <div class="seccion" id="nombramientos-section" style="display:none;">
-        <h2> Gestión de nombramientos</h2>
-        <input type="hidden" id="nombramiento_asambleista_id">
-        
-        <h3>Nombramientos actuales</h3>
-        <table border="1" cellpadding="8" style="width:100%">
-            <thead>
-                <tr><th>Sector</th><th>Puesto</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Estado</th><th>Acciones</th></tr>
-            </thead>
-            <tbody id="nombramientos-lista">
-                <tr><td colspan="6">Seleccione un asambleísta para ver sus nombramientos</td></tr>
-            </tbody>
-        </table>
-
-        <hr>
-
-        <h3> + Agregar nuevo nombramiento</h3>
-        <div class="form-group">
-            <label>Sector:</label><br>
-            <select id="nombramiento_sector">
-                <option value="">-- Seleccione --</option>
-                <option value="1">Docencia</option>
-                <option value="2">Administración</option>
-                <option value="3">Estudiantil</option>
-                <option value="4">Sector Oficio</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label>Puesto:</label><br>
-            <select id="nombramiento_puesto">
-                <option value="">-- Seleccione --</option>
-                <option value="1">Representante Propietario</option>
-                <option value="2">Representante Suplente</option>
-                <option value="3">Secretaría</option>
-                <option value="4">Directorio</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label>Fecha inicio:</label><br>
-            <input type="date" id="nombramiento_fecha_inicio">
-        </div>
-        
-        <div class="form-group">
-            <label>Fecha fin (dejar vacío si es vigente):</label><br>
-            <input type="date" id="nombramiento_fecha_fin">
-        </div>
-        
-        <button onclick="agregarNombramiento()">Agregar nombramiento</button>
-    </div>
+    <!-- Footer -->
+    <div id="footer-placeholder"></div>
 
     <script>
-    
-        let asambleistasData = [
-            { id: 1, cedula: "1-2345-6789", nombre: "Ana María Rodríguez Mora", correo: "arodriguez@tec.ac.cr" },
-            { id: 2, cedula: "2-3456-7890", nombre: "Carlos Jiménez Solano", correo: "cjimenez@tec.ac.cr" },
-            { id: 3, cedula: "3-4567-8901", nombre: "María Fernanda Vargas", correo: "mvargas@tec.ac.cr" }
-        ];
-        
-        let nombramientosData = {
-            1: [{ sector: "Docencia", puesto: "Representante Propietario", fecha_inicio: "2023-01-15", fecha_fin: null, estado: "VIGENTE" }],
-            2: [{ sector: "Administración", puesto: "Representante Suplente", fecha_inicio: "2022-03-10", fecha_fin: "2024-12-31", estado: "HISTÓRICO" }],
-            3: [{ sector: "Estudiantil", puesto: "Representante Propietario", fecha_inicio: "2024-01-20", fecha_fin: null, estado: "VIGENTE" }]
-        };
-        
-        // Detectar si es edición por la URL o parámetros
-        function obtenerIdDeURL() {
-            // Simulación: en el backend real se pasa el ID
+        // CON DATOS REALES DESDE LA BASE DE DATOS
 
+        let currentAsambleistaId = null;
+
+        // Cargar navbar y footer
+        function loadSharedComponents() {
+            fetch('/views/shared/navbar.view.html')
+                .then(res => {
+                    if (!res.ok) throw new Error('Navbar no encontrado');
+                    return res.text();
+                })
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(err => {
+                    console.error('Error cargando navbar:', err);
+                    document.getElementById('navbar-placeholder').innerHTML = `
+                        <nav style="background: #1e3c72; color: white; padding: 15px; text-align: center;">
+                            <strong>AIR - Sistema Legislativo</strong>
+                        </nav>
+                    `;
+                });
+            
+            fetch('/views/shared/footer.view.html')
+                .then(res => {
+                    if (!res.ok) throw new Error('Footer no encontrado');
+                    return res.text();
+                })
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(err => {
+                    console.error('Error cargando footer:', err);
+                    document.getElementById('footer-placeholder').innerHTML = `
+                        <footer style="background: #f8fafc; text-align: center; padding: 15px; margin-top: 30px; border-top: 1px solid #e2e8f0;">
+                            <small>Asamblea Institucional Representativa - TEC</small>
+                        </footer>
+                    `;
+                });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.innerText = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-msg');
+            successDiv.innerText = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Cargar sectores desde la BD
+        async function cargarSectores() {
+            try {
+                const response = await fetch('/api/catalogos/sectores');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const select = document.getElementById('nombramiento_sector');
+                    select.innerHTML = '<option value="">-- Seleccione sector --</option>';
+                    result.data.forEach(s => {
+                        select.innerHTML += `<option value="${s.id_sector}">${s.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando sectores:', error);
+            }
+        }
+
+        // Cargar puestos desde la BD
+        async function cargarPuestos() {
+            try {
+                const response = await fetch('/api/catalogos/puestos');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const select = document.getElementById('nombramiento_puesto');
+                    select.innerHTML = '<option value="">-- Seleccione puesto --</option>';
+                    result.data.forEach(p => {
+                        select.innerHTML += `<option value="${p.id_puesto}">${p.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando puestos:', error);
+            }
+        }
+
+        // Obtener ID de la URL
+        function obtenerIdDeURL() {
             let params = new URLSearchParams(window.location.search);
             return params.get('id');
         }
-        
-        function cargarAsambleistaParaEdicion(id) {
-            let asambleista = asambleistasData.find(a => a.id == id);
-            if(asambleista) {
-                document.getElementById('form-titulo').innerText = ' Editar asambleísta';
-                document.getElementById('asambleista_id').value = asambleista.id;
-                document.getElementById('nombre').value = asambleista.nombre;
-                document.getElementById('cedula').value = asambleista.cedula;
-                document.getElementById('correo').value = asambleista.correo;
-                document.getElementById('btn-submit').innerText = 'Actualizar';
-                document.getElementById('btn-cancelar').style.display = 'inline-block';
-                document.getElementById('nombramientos-section').style.display = 'block';
-                document.getElementById('nombramiento_asambleista_id').value = asambleista.id;
-                mostrarNombramientos(asambleista.id);
-            }
-        }
-        
-        function mostrarNombramientos(asambleistaId) {
-            let tbody = document.getElementById('nombramientos-lista');
-            let nombramientos = nombramientosData[asambleistaId] || [];
+
+        // Cargar asambleísta para edición
+        async function cargarAsambleistaParaEdicion(id) {
+            currentAsambleistaId = id;
             
-            if(nombramientos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6">No hay nombramientos registrados</td></tr>';
-                return;
-            }
-            
-            tbody.innerHTML = '';
-            nombramientos.forEach((n, index) => {
-                let row = tbody.insertRow();
-                row.insertCell(0).innerText = n.sector;
-                row.insertCell(1).innerText = n.puesto;
-                row.insertCell(2).innerText = n.fecha_inicio;
-                row.insertCell(3).innerText = n.fecha_fin || 'Actual';
-                row.insertCell(4).innerHTML = n.estado === 'VIGENTE' ? 
-                    '<span class="badge-verde">VIGENTE</span>' : 
-                    '<span class="badge-gris">HISTÓRICO</span>';
-                row.insertCell(5).innerHTML = `<button onclick="eliminarNombramiento(${asambleistaId}, ${index})">🗑️</button>`;
-            });
-        }
-        
-        function eliminarNombramiento(asambleistaId, index) {
-            if(confirm('¿Eliminar este nombramiento?')) {
-                nombramientosData[asambleistaId].splice(index, 1);
-                mostrarNombramientos(asambleistaId);
-                alert('Nombramiento eliminado');
-            }
-        }
-        
-        function guardarAsambleista() {
-            let id = document.getElementById('asambleista_id').value;
-            let nombre = document.getElementById('nombre').value;
-            let cedula = document.getElementById('cedula').value;
-            let correo = document.getElementById('correo').value;
-            
-            if(!nombre || !cedula) {
-                alert('Nombre y cédula son obligatorios');
-                return;
-            }
-            
-            if(id) {
-                let index = asambleistasData.findIndex(a => a.id == id);
-                if(index !== -1) {
-                    asambleistasData[index] = { ...asambleistasData[index], nombre, cedula, correo };
-                    alert(`Asambleísta actualizado: ${nombre}`);
+            try {
+                const response = await fetch(`/api/asambleistas/${id}`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const a = result.data;
+                    document.getElementById('form-titulo').innerText = '✏️ Editar asambleísta';
+                    document.getElementById('asambleista_id').value = a.id_asambleista;
+                    document.getElementById('nombre').value = a.nombre;
+                    document.getElementById('cedula').value = a.cedula;
+                    document.getElementById('correo').value = a.correo_institucional || '';
+                    document.getElementById('btn-submit').innerText = 'Actualizar';
+                    document.getElementById('btn-cancelar').style.display = 'inline-block';
+                    document.getElementById('nombramientos-section').style.display = 'block';
+                    document.getElementById('nombramiento_asambleista_id').value = a.id_asambleista;
+                    cargarNombramientos(a.id_asambleista);
                 }
-            } else {
-                let nuevoId = asambleistasData.length + 1;
-                asambleistasData.push({ id: nuevoId, cedula, nombre, correo });
-                alert(`Asambleísta registrado: ${nombre}`);
-                window.location.href = '/asambleistas';
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error al cargar los datos del asambleísta');
             }
-            cancelarEdicion();
         }
-        
+
+        // Cargar nombramientos desde la BD
+        async function cargarNombramientos(asambleistaId) {
+            const loadingDiv = document.getElementById('nombramientos-loading');
+            const tbody = document.getElementById('nombramientos-lista');
+            
+            loadingDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/nombramientos/historial/${asambleistaId}`);
+                const result = await response.json();
+                
+                loadingDiv.style.display = 'none';
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    tbody.innerHTML = '';
+                    for (let i = 0; i < result.data.length; i++) {
+                        const n = result.data[i];
+                        const row = tbody.insertRow();
+                        row.insertCell(0).innerText = n.sector;
+                        row.insertCell(1).innerText = n.puesto;
+                        row.insertCell(2).innerText = n.fecha_inicio;
+                        row.insertCell(3).innerText = n.fecha_fin || 'Actual';
+                        row.insertCell(4).innerHTML = n.estado_real === 'Vigente' ? 
+                            '<span class="badge-verde">VIGENTE</span>' : 
+                            '<span class="badge-gris">HISTÓRICO</span>';
+                        row.insertCell(5).innerHTML = n.estado_real === 'Vigente' ? 
+                            `<button class="btn-danger" onclick="finalizarNombramiento(${n.id_nombramiento})">Finalizar</button>` : 
+                            '-';
+                    }
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay nombramientos registrados</td></tr>';
+                }
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Error al cargar nombramientos</td></tr>';
+            }
+        }
+
+        // Finalizar nombramiento
+        async function finalizarNombramiento(idNombramiento) {
+            const fechaFin = prompt('Ingrese la fecha de finalización (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!fechaFin) return;
+            
+            try {
+                const response = await fetch(`/api/nombramientos/${idNombramiento}/finalizar`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fecha_fin: fechaFin, observacion: 'Finalizado desde interfaz' })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Nombramiento finalizado exitosamente');
+                    cargarNombramientos(currentAsambleistaId);
+                } else {
+                    showError(result.message || 'Error al finalizar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión');
+            }
+        }
+
+        // Guardar asambleísta (crear o actualizar)
+        async function guardarAsambleista() {
+            const id = document.getElementById('asambleista_id').value;
+            const nombre = document.getElementById('nombre').value;
+            const cedula = document.getElementById('cedula').value;
+            const correo = document.getElementById('correo').value;
+            
+            if (!nombre || !cedula) {
+                showError('Nombre y cédula son obligatorios');
+                return;
+            }
+            
+            const formatoCedula = /^[0-9]-[0-9]{4}-[0-9]{4}$/;
+            if (!formatoCedula.test(cedula)) {
+                showError('La cédula debe tener el formato 0-0000-0000');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/asambleistas/guardar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        id_asambleista: id || null, 
+                        cedula, 
+                        nombre, 
+                        correo_institucional: correo 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess(result.message);
+                    if (!id) {
+                        window.location.href = '/asambleistas';
+                    } else {
+                        cancelarEdicion();
+                    }
+                } else {
+                    showError(result.message || 'Error al guardar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión con el servidor');
+            }
+        }
+
+        // Agregar nombramiento
+        async function agregarNombramiento() {
+            const asambleistaId = document.getElementById('nombramiento_asambleista_id').value;
+            const sector_id = document.getElementById('nombramiento_sector').value;
+            const id_puesto = document.getElementById('nombramiento_puesto').value;
+            const fecha_inicio = document.getElementById('nombramiento_fecha_inicio').value;
+            const fecha_fin = document.getElementById('nombramiento_fecha_fin').value || null;
+            
+            if (!sector_id || !id_puesto || !fecha_inicio) {
+                showError('Por favor complete sector, puesto y fecha de inicio');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/nombramientos/registrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        asambleista_id: parseInt(asambleistaId),
+                        sector_id: parseInt(sector_id),
+                        id_puesto: parseInt(id_puesto),
+                        fecha_inicio,
+                        fecha_fin,
+                        observaciones: null
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Nombramiento agregado correctamente');
+                    document.getElementById('nombramiento_sector').value = '';
+                    document.getElementById('nombramiento_puesto').value = '';
+                    document.getElementById('nombramiento_fecha_inicio').value = '';
+                    document.getElementById('nombramiento_fecha_fin').value = '';
+                    cargarNombramientos(asambleistaId);
+                } else {
+                    showError(result.message || 'Error al agregar nombramiento');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión');
+            }
+        }
+
         function cancelarEdicion() {
             window.location.href = '/asambleistas';
         }
+
+        // Inicializar
+        loadSharedComponents();
+        cargarSectores();
+        cargarPuestos();
         
-        function agregarNombramiento() {
-            let asambleistaId = document.getElementById('nombramiento_asambleista_id').value;
-            let sectorSelect = document.getElementById('nombramiento_sector');
-            let puestoSelect = document.getElementById('nombramiento_puesto');
-            let sector = sectorSelect.options[sectorSelect.selectedIndex]?.text;
-            let puesto = puestoSelect.options[puestoSelect.selectedIndex]?.text;
-            let fecha_inicio = document.getElementById('nombramiento_fecha_inicio').value;
-            let fecha_fin = document.getElementById('nombramiento_fecha_fin').value || null;
-            
-            if(!sector || !puesto || !fecha_inicio) {
-                alert('Por favor complete sector, puesto y fecha de inicio');
-                return;
-            }
-            
-            // Validar que no haya traslape de fechas
-            let nombramientosExistentes = nombramientosData[asambleistaId] || [];
-            let hayTraslape = nombramientosExistentes.some(n => {
-                if(n.estado === 'HISTÓRICO' && fecha_fin) {
-                    return (fecha_inicio <= n.fecha_fin && (!fecha_fin || fecha_fin >= n.fecha_inicio));
-                }
-                return false;
-            });
-            
-            if(hayTraslape) {
-                alert('Error: Las fechas del nuevo nombramiento se traslapan con uno existente');
-                return;
-            }
-            
-            if(!nombramientosData[asambleistaId]) nombramientosData[asambleistaId] = [];
-            
-            nombramientosData[asambleistaId].push({
-                sector, puesto, fecha_inicio, fecha_fin,
-                estado: fecha_fin ? 'HISTÓRICO' : 'VIGENTE'
-            });
-            
-            alert('Nombramiento agregado correctamente');
-            document.getElementById('nombramiento_sector').value = '';
-            document.getElementById('nombramiento_puesto').value = '';
-            document.getElementById('nombramiento_fecha_inicio').value = '';
-            document.getElementById('nombramiento_fecha_fin').value = '';
-            mostrarNombramientos(asambleistaId);
-        }
-        
-        // Cargar si es edición
         let idEditar = obtenerIdDeURL();
-        if(idEditar) {
+        if (idEditar) {
             cargarAsambleistaParaEdicion(parseInt(idEditar));
         }
     </script>
