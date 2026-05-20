@@ -8,429 +8,81 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f5f7fb;
-        }
-
-        .compiler-container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .card-header-custom {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            border-radius: 12px 12px 0 0;
-            padding: 20px;
-        }
-
-        .visor-preview {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            overflow: hidden;
-        }
-
-        .visor-content {
-            padding: 40px 50px;
-            font-family: 'Georgia', 'Times New Roman', serif;
-            line-height: 1.6;
-            color: #2d3748;
-            min-height: 500px;
-        }
-
-        .visor-content h1 {
-            font-size: 1.8rem;
-            color: #1e3c72;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-        }
-
-        .visor-content h2 {
-            font-size: 1.4rem;
-            color: #2d3748;
-            margin-top: 30px;
-            margin-bottom: 15px;
-        }
-
-        .visor-content h3 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-top: 20px;
-        }
-
-        .visor-content .articulo {
-            margin-bottom: 20px;
-            padding-left: 15px;
-            border-left: 3px solid #cbd5e0;
-        }
-
-        .visor-content .articulo-numero {
-            font-weight: 700;
-            color: #1e3c72;
-            font-size: 1.1rem;
-        }
-
-        .toolbar {
-            background: white;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 12px 20px;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .toolbar button, .toolbar select {
-            font-size: 0.85rem;
-        }
-
-        .select2-container--default .select2-selection--single {
-            height: 38px;
-            padding: 5px;
-        }
-
-        .export-btn {
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 6px 14px;
-            transition: all 0.2s;
-        }
-
-        .export-btn:hover {
-            background: #218838;
-        }
-
-        .print-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 6px 14px;
-        }
-
-        .version-badge {
-            background: #e9ecef;
-            border-radius: 20px;
-            padding: 6px 15px;
-            font-size: 0.8rem;
-        }
-
-        .compilation-info {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 12px 18px;
-            margin-top: 20px;
-            font-size: 0.85rem;
-            border-left: 4px solid #1e3c72;
-        }
-
-        @media print {
-            .toolbar, .card-header-custom, .navbar, .footer, .btn, .no-print {
-                display: none !important;
-            }
-            .visor-content {
-                padding: 20px;
-            }
-            body {
-                background: white;
-            }
-        }
-
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 60px;
-        }
-
-        .highlight-change {
-            background-color: #fff3cd;
-            transition: background-color 1s ease;
-        }
+        body { background-color: #f5f7fb; }
+        .compiler-container { max-width: 1400px; margin: 0 auto; }
+        .card-header-custom { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border-radius: 12px 12px 0 0; padding: 20px; }
+        .visor-preview { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
+        .visor-content { padding: 40px 50px; font-family: 'Georgia', 'Times New Roman', serif; line-height: 1.6; color: #2d3748; min-height: 500px; }
+        .visor-content h1 { font-size: 1.8rem; color: #1e3c72; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; }
+        .visor-content .articulo { margin-bottom: 20px; padding-left: 15px; border-left: 3px solid #cbd5e0; }
+        .visor-content .articulo-numero { font-weight: 700; color: #1e3c72; font-size: 1.1rem; }
+        .toolbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+        .export-btn { background: #28a745; color: white; border: none; border-radius: 8px; padding: 6px 14px; }
+        .print-btn { background: #6c757d; color: white; border: none; border-radius: 8px; padding: 6px 14px; }
+        .compilation-info { background: #f8fafc; border-radius: 8px; padding: 12px 18px; margin-top: 20px; font-size: 0.85rem; border-left: 4px solid #1e3c72; }
+        .loading { display: flex; justify-content: center; align-items: center; padding: 60px; }
+        @media print { .toolbar, .card-header-custom, .navbar, .footer, .btn, .no-print { display: none !important; } .visor-content { padding: 20px; } body { background: white; } }
     </style>
 </head>
 <body>
     <div id="navbar-placeholder"></div>
-
     <div class="container compiler-container mt-4 mb-5">
         <div class="visor-preview">
-            <div class="card-header-custom">
-                <h3 class="mb-0"><i class="fas fa-code-branch me-2"></i>Compilador Normativo</h3>
-                <p class="mb-0 mt-1 opacity-75">Visor de reglamentos compilados con historial de reformas</p>
-            </div>
-
-            <div class="toolbar no-print">
-                <div class="flex-grow-1">
-                    <label class="me-2 fw-bold">Seleccionar Reglamento:</label>
-                    <select id="normativa-select" style="width: 250px;">
-                        <option value="">Cargando...</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="me-2 fw-bold">Versión:</label>
-                    <select id="version-select">
-                        <option value="vigente">Vigente (Actual)</option>
-                    </select>
-                </div>
-
-                <button id="btn-print" class="print-btn no-print">
-                    <i class="fas fa-print me-1"></i> Imprimir
-                </button>
-                <button id="btn-export-pdf" class="export-btn no-print">
-                    <i class="fas fa-file-pdf me-1"></i> Exportar PDF
-                </button>
-            </div>
-
-            <div id="loading-compilation" class="loading" style="display: none;">
-                <div class="text-center">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2">Compilando normativa...</p>
-                </div>
-            </div>
-
-            <div id="visor-content" class="visor-content">
-                <div class="text-center text-muted py-5">
-                    <i class="fas fa-file-code fa-4x mb-3 opacity-50"></i>
-                    <h4>Visor de Reglamento Compilado</h4>
-                    <p>Seleccione un reglamento para ver su texto compilado</p>
-                    <p class="small mt-3">El compilador integra todas las reformas vigentes en un solo documento</p>
-                </div>
-            </div>
-
+            <div class="card-header-custom"><h3 class="mb-0"><i class="fas fa-code-branch me-2"></i>Compilador Normativo</h3><p class="mb-0 mt-1 opacity-75">Visor de reglamentos compilados con historial de reformas</p></div>
+            <div class="toolbar no-print"><div class="flex-grow-1"><label class="me-2 fw-bold">Seleccionar Reglamento:</label><select id="normativa-select" style="width: 250px;"><option value="">Cargando...</option></select></div><button id="btn-print" class="print-btn no-print"><i class="fas fa-print me-1"></i> Imprimir</button><button id="btn-export-pdf" class="export-btn no-print"><i class="fas fa-file-pdf me-1"></i> Exportar PDF</button></div>
+            <div id="loading-compilation" class="loading" style="display: none;"><div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Compilando normativa...</p></div></div>
+            <div id="visor-content" class="visor-content"><div class="text-center text-muted py-5"><i class="fas fa-file-code fa-4x mb-3 opacity-50"></i><h4>Visor de Reglamento Compilado</h4><p>Seleccione un reglamento para ver su texto compilado</p></div></div>
             <div id="compilation-info" class="compilation-info mx-3 mb-3 no-print" style="display: none;"></div>
         </div>
     </div>
-
     <div id="footer-placeholder"></div>
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <script>
-        const API_BASE = '/api';
         let currentNormativaId = null;
-        let currentVersion = 'vigente';
-
         function loadSharedComponents() {
-            fetch('/shared/navbar.html')
-                .then(res => res.text())
-                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
-                .catch(err => console.error('Error cargando navbar:', err));
-            
-            fetch('/shared/footer.html')
-                .then(res => res.text())
-                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
-                .catch(err => console.error('Error cargando footer:', err));
+            fetch('/views/shared/navbar.view.html').then(res => res.text()).then(data => document.getElementById('navbar-placeholder').innerHTML = data).catch(err => { console.error(err); document.getElementById('navbar-placeholder').innerHTML = '<nav class="navbar navbar-dark bg-dark p-3"><a class="navbar-brand" href="#">AIR - Compilador</a></nav>'; });
+            fetch('/views/shared/footer.view.html').then(res => res.text()).then(data => document.getElementById('footer-placeholder').innerHTML = data).catch(err => { console.error(err); document.getElementById('footer-placeholder').innerHTML = '<footer class="text-center text-muted py-3 mt-4 border-top"><small>Asamblea Institucional Representativa - TEC</small></footer>'; });
         }
-
         async function loadNormativasList() {
             try {
-                const response = await fetch(`${API_BASE}/normativa/listado`);
+                const response = await fetch('/api/normativa/reglamentos');
                 const result = await response.json();
                 const select = $('#normativa-select');
-                
                 if (result.success && result.data) {
-                    select.empty();
-                    select.append('<option value="">-- Seleccione un reglamento --</option>');
-                    result.data.forEach(n => {
-                        select.append(`<option value="${n.id}">${n.nombre} ${n.version ? `(v${n.version})` : ''}</option>`);
-                    });
-                } else {
-                    loadMockNormativasList(select);
-                }
-                
-                select.select2({
-                    placeholder: "Seleccione un reglamento",
-                    allowClear: true
-                });
-                
-                select.on('change', function() {
-                    const val = $(this).val();
-                    if (val) {
-                        currentNormativaId = val;
-                        loadCompiledVersion(currentNormativaId, currentVersion);
-                    } else {
-                        resetVisor();
-                    }
-                });
-                
-            } catch (error) {
-                console.error('Error cargando normativas:', error);
-                loadMockNormativasList($('#normativa-select'));
-            }
+                    select.empty(); select.append('<option value="">-- Seleccione un reglamento --</option>');
+                    result.data.forEach(n => { select.append(`<option value="${n.id_reglamento}">${n.nombre_normativa} (${n.sigla})</option>`); });
+                } else { loadMockNormativasList(select); }
+                select.select2({ placeholder: "Seleccione un reglamento", allowClear: true });
+                select.on('change', function() { const val = $(this).val(); if (val) { currentNormativaId = val; loadCompiledVersion(currentNormativaId); } else { resetVisor(); } });
+            } catch (error) { console.error('Error:', error); loadMockNormativasList($('#normativa-select')); }
         }
-
-        function loadMockNormativasList(select) {
-            select.empty();
-            select.append('<option value="">-- Seleccione un reglamento --</option>');
-            select.append('<option value="1">Reglamento General de la Asamblea Universitaria (v3.0)</option>');
-            select.append('<option value="2">Reglamento de Faltas y Sanciones (v2.1)</option>');
-            select.append('<option value="3">Reglamento Electoral (v1.5)</option>');
-            select.select2({
-                placeholder: "Seleccione un reglamento",
-                allowClear: true
-            });
-            
-            select.off('change').on('change', function() {
-                if ($(this).val()) {
-                    currentNormativaId = $(this).val();
-                    loadMockCompilation(currentNormativaId);
-                } else {
-                    resetVisor();
-                }
-            });
-        }
-
-        async function loadCompiledVersion(normativaId, version) {
-            const loading = document.getElementById('loading-compilation');
-            const visorContent = document.getElementById('visor-content');
-            const compilationInfo = document.getElementById('compilation-info');
-            
-            loading.style.display = 'flex';
-            visorContent.style.opacity = '0.5';
-            
+        function loadMockNormativasList(select) { select.empty(); select.append('<option value="">-- Seleccione un reglamento --</option>'); select.append('<option value="1">Reglamento General de la Asamblea (v3.0)</option>'); select.append('<option value="2">Reglamento de Faltas (v2.1)</option>'); select.select2({ placeholder: "Seleccione un reglamento", allowClear: true }); select.off('change').on('change', function() { if ($(this).val()) { currentNormativaId = $(this).val(); loadMockCompilation(currentNormativaId); } else { resetVisor(); } }); }
+        async function loadCompiledVersion(normativaId) {
+            const loading = document.getElementById('loading-compilation'); const visorContent = document.getElementById('visor-content'); const compilationInfo = document.getElementById('compilation-info');
+            loading.style.display = 'flex'; visorContent.style.opacity = '0.5';
             try {
-                const response = await fetch(`${API_BASE}/normativa/compilado/${normativaId}?version=${version}`);
+                const response = await fetch(`/api/normativa/compilado/${normativaId}`);
                 const result = await response.json();
-                
-                if (result.success && result.data) {
-                    renderCompilation(result.data);
-                    renderCompilationInfo(result.data);
-                } else {
-                    loadMockCompilation(normativaId);
-                }
-            } catch (error) {
-                console.error('Error cargando compilado:', error);
-                loadMockCompilation(normativaId);
-            } finally {
-                loading.style.display = 'none';
-                visorContent.style.opacity = '1';
-            }
+                if (result.success && result.data) { renderCompilation(result.data); renderCompilationInfo(result.data); } else { loadMockCompilation(normativaId); }
+            } catch (error) { console.error('Error:', error); loadMockCompilation(normativaId); }
+            finally { loading.style.display = 'none'; visorContent.style.opacity = '1'; }
         }
-
         function renderCompilation(data) {
             const container = document.getElementById('visor-content');
-            
-            let html = `
-                <h1>${data.titulo || 'Reglamento Compilado'}</h1>
-                <p class="text-muted">${data.descripcion || 'Texto oficial compilado'}</p>
-            `;
-            
-            if (data.articulos && data.articulos.length > 0) {
-                data.articulos.forEach(art => {
-                    html += `
-                        <div class="articulo" id="art-${art.id}">
-                            <div class="articulo-numero">${art.numero}</div>
-                            <div class="articulo-titulo fw-bold mt-1 mb-2">${art.titulo || ''}</div>
-                            <div class="articulo-contenido">${art.contenido || 'Sin contenido'}</div>
-                            ${art.reformado_en ? `<div class="small text-muted mt-2"><i class="fas fa-edit"></i> Reformado: ${art.reformado_en}</div>` : ''}
-                        </div>
-                    `;
-                });
-            } else {
-                html += `<p>No hay artículos disponibles para este reglamento.</p>`;
-            }
-            
+            let html = `<h1>${data.titulo || 'Reglamento Compilado'}</h1><p class="text-muted">${data.descripcion || 'Texto oficial compilado'}</p>`;
+            if (data.articulos && data.articulos.length > 0) { data.articulos.forEach(art => { html += `<div class="articulo" id="art-${art.id}"><div class="articulo-numero">${art.numero}</div><div class="articulo-contenido">${art.contenido || 'Sin contenido'}</div>${art.reformado_en ? `<div class="small text-muted mt-2"><i class="fas fa-edit"></i> Reformado: ${art.reformado_en}</div>` : ''}</div>`; }); }
+            else { html += `<p>No hay artículos disponibles para este reglamento.</p>`; }
             container.innerHTML = html;
         }
-
-        function renderCompilationInfo(data) {
-            const infoDiv = document.getElementById('compilation-info');
-            infoDiv.style.display = 'block';
-            infoDiv.innerHTML = `
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Compilación vigente al:</strong> ${new Date().toLocaleDateString()} | 
-                <strong>Versión:</strong> ${data.version || 'Vigente'} | 
-                <strong>Total artículos:</strong> ${data.total_articulos || 0} |
-                <strong>Última reforma:</strong> ${data.ultima_reforma || 'Ninguna'}
-            `;
-        }
-
-        function loadMockCompilation(normativaId) {
-            const mockData = {
-                1: {
-                    titulo: 'Reglamento General de la Asamblea Universitaria',
-                    descripcion: 'Texto compilado que integra todas las reformas aprobadas hasta la fecha.',
-                    version: '3.0 (Compilación 2024)',
-                    ultima_reforma: '15 de marzo de 2024',
-                    total_articulos: 45,
-                    articulos: [
-                        { id: 1, numero: 'Artículo 1', titulo: 'Objeto y ámbito', contenido: 'El presente Reglamento tiene por objeto regular el funcionamiento de la Asamblea Universitaria, estableciendo sus competencias, organización y procedimientos.', reformado_en: null },
-                        { id: 2, numero: 'Artículo 2', titulo: 'Principios', contenido: 'La Asamblea Universitaria se rige por los principios de democracia participativa, transparencia, publicidad de los actos y rendición de cuentas.', reformado_en: null },
-                        { id: 3, numero: 'Artículo 3', titulo: 'De los asambleístas', contenido: 'Son miembros de la Asamblea Universitaria los representantes de los sectores docente, estudiantil y administrativo, elegidos conforme a las normas electorales vigentes.', reformado_en: 'Reforma aprobada el 10/01/2024 - incorpora representación administrativa' },
-                        { id: 4, numero: 'Artículo 4', titulo: 'Del quórum', contenido: 'Para sesionar válidamente se requerirá la presencia de al menos la mitad más uno de los miembros de la Asamblea.', reformado_en: null },
-                        { id: 5, numero: 'Artículo 5', titulo: 'De las votaciones', contenido: 'Las decisiones se adoptarán por mayoría simple de los presentes, salvo los casos que requieran mayoría calificada establecidos en este Reglamento.', reformado_en: 'Reforma aprobada el 22/02/2024 - actualización de mayorías' }
-                    ]
-                },
-                default: {
-                    titulo: 'Reglamento Compilado',
-                    descripcion: 'Documento normativo compilado con las disposiciones vigentes.',
-                    version: 'Vigente',
-                    ultima_reforma: 'No registrada',
-                    total_articulos: 0,
-                    articulos: []
-                }
-            };
-            
-            const data = mockData[normativaId] || mockData.default;
-            renderCompilation(data);
-            renderCompilationInfo(data);
-        }
-
-        function resetVisor() {
-            document.getElementById('visor-content').innerHTML = `
-                <div class="text-center text-muted py-5">
-                    <i class="fas fa-file-code fa-4x mb-3 opacity-50"></i>
-                    <h4>Visor de Reglamento Compilado</h4>
-                    <p>Seleccione un reglamento para ver su texto compilado</p>
-                </div>
-            `;
-            document.getElementById('compilation-info').style.display = 'none';
-        }
-
-        // Imprimir
-        document.getElementById('btn-print').addEventListener('click', () => {
-            window.print();
-        });
-
-        // Exportar PDF usando html2pdf
-        document.getElementById('btn-export-pdf').addEventListener('click', async () => {
-            const element = document.getElementById('visor-content');
-            const infoElement = document.getElementById('compilation-info');
-            const originalInfoDisplay = infoElement.style.display;
-            
-            infoElement.style.display = 'block';
-            
-            const opt = {
-                margin: [0.5, 0.5, 0.5, 0.5],
-                filename: `compilacion_normativa_${new Date().toISOString().slice(0,10)}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, letterRendering: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-            
-            await html2pdf().set(opt).from(element).save();
-            infoElement.style.display = originalInfoDisplay;
-        });
-
-        // Cambio de versión
-        document.getElementById('version-select').addEventListener('change', (e) => {
-            currentVersion = e.target.value;
-            if (currentNormativaId) {
-                loadCompiledVersion(currentNormativaId, currentVersion);
-            }
-        });
-
-        // Inicializar
-        loadSharedComponents();
-        loadNormativasList();
+        function renderCompilationInfo(data) { const infoDiv = document.getElementById('compilation-info'); infoDiv.style.display = 'block'; infoDiv.innerHTML = `<i class="fas fa-info-circle me-2"></i><strong>Compilación vigente al:</strong> ${new Date().toLocaleDateString()} | <strong>Versión:</strong> ${data.version || 'Vigente'} | <strong>Total artículos:</strong> ${data.total_articulos || 0}`; }
+        function loadMockCompilation(normativaId) { const mockData = { 1: { titulo: 'Reglamento General de la Asamblea', descripcion: 'Texto compilado que integra todas las reformas aprobadas hasta la fecha.', version: '3.0', total_articulos: 45, articulos: [{ id: 1, numero: 'Artículo 1', contenido: 'El presente Reglamento tiene por objeto regular el funcionamiento de la Asamblea.' }, { id: 2, numero: 'Artículo 2', contenido: 'La Asamblea se rige por los principios de democracia participativa y transparencia.' }] }, default: { titulo: 'Reglamento Compilado', descripcion: 'Documento normativo compilado.', version: 'Vigente', total_articulos: 0, articulos: [] } }; renderCompilation(mockData[normativaId] || mockData.default); renderCompilationInfo(mockData[normativaId] || mockData.default); }
+        function resetVisor() { document.getElementById('visor-content').innerHTML = `<div class="text-center text-muted py-5"><i class="fas fa-file-code fa-4x mb-3 opacity-50"></i><h4>Visor de Reglamento Compilado</h4><p>Seleccione un reglamento para ver su texto compilado</p></div>`; document.getElementById('compilation-info').style.display = 'none'; }
+        document.getElementById('btn-print').addEventListener('click', () => window.print());
+        document.getElementById('btn-export-pdf').addEventListener('click', async () => { const element = document.getElementById('visor-content'); const infoElement = document.getElementById('compilation-info'); const originalDisplay = infoElement.style.display; infoElement.style.display = 'block'; await html2pdf().set({ margin: [0.5,0.5,0.5,0.5], filename: `compilacion_${new Date().toISOString().slice(0,10)}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } }).from(element).save(); infoElement.style.display = originalDisplay; });
+        loadSharedComponents(); loadNormativasList();
     </script>
 </body>
 </html>
