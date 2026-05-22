@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitácora de Auditoría - AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f5f7fb; font-family: 'Segoe UI', Arial, sans-serif; }
+        .table-container { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 20px; }
+        .filter-bar { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .badge-insert { background-color: #10b981; color: white; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
+        .badge-update { background-color: #f59e0b; color: white; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
+        .badge-delete { background-color: #ef4444; color: white; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
+        .badge-login { background-color: #3b82f6; color: white; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
+        .loading { text-align: center; padding: 50px; }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-history me-2"></i>Bitácora de Auditoría</h1>
+            <button class="btn btn-primary" onclick="cargarBitacora()">
+                <i class="fas fa-sync-alt me-1"></i> Refrescar
+            </button>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-bar">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Filtrar por Tabla</label>
+                    <select id="filtro-tabla" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="asambleista">asambleista</option>
+                        <option value="elemento_normativo">elemento_normativo</option>
+                        <option value="nombramiento">nombramiento</option>
+                        <option value="sys_usuario">sys_usuario</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Filtrar por Usuario</label>
+                    <input type="text" id="filtro-usuario" class="form-control" placeholder="Nombre de usuario...">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                        <i class="fas fa-filter me-1"></i> Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Cargando bitácora...</p>
+        </div>
+
+        <!-- Tabla de bitácora -->
+        <div class="table-container">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Tabla</th>
+                            <th>Detalle</th>
+                            <th>IP Origen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bitacora-tbody">
+                        <tr><td colspan="6" class="text-center text-muted py-4">Cargando registros...</td</tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script>
+        function loadSharedComponents() {
+            fetch('/views/shared/navbar.view.html').then(res => res.text()).then(data => document.getElementById('navbar-placeholder').innerHTML = data).catch(() => document.getElementById('navbar-placeholder').innerHTML = '<nav class="navbar navbar-dark bg-dark p-3"><a class="navbar-brand" href="#">AIR - Bitácora</a></nav>');
+            fetch('/views/shared/footer.view.html').then(res => res.text()).then(data => document.getElementById('footer-placeholder').innerHTML = data).catch(() => document.getElementById('footer-placeholder').innerHTML = '<footer class="text-center text-muted py-3 mt-4 border-top"><small>Asamblea Institucional Representativa - TEC</small></footer>');
+        }
+
+        function getBadgeAccion(accion) {
+            const a = accion.toLowerCase();
+            if (a.includes('insert')) return '<span class="badge-insert"><i class="fas fa-plus me-1"></i>INSERT</span>';
+            if (a.includes('update')) return '<span class="badge-update"><i class="fas fa-edit me-1"></i>UPDATE</span>';
+            if (a.includes('delete')) return '<span class="badge-delete"><i class="fas fa-trash me-1"></i>DELETE</span>';
+            if (a.includes('login')) return '<span class="badge-login"><i class="fas fa-sign-in-alt me-1"></i>LOGIN</span>';
+            return `<span class="badge bg-secondary">${accion}</span>`;
+        }
+
+        async function cargarBitacora(limite = 100) {
+            const tbody = document.getElementById('bitacora-tbody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando...</td></tr>';
+            
+            try {
+                const response = await fetch(`/api/bitacora?limite=${limite}`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    tbody.innerHTML = '';
+                    result.data.forEach(log => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).innerText = new Date(log.fecha_hora).toLocaleString('es-ES');
+                        row.insertCell(1).innerText = log.username || 'Sistema';
+                        row.insertCell(2).innerHTML = getBadgeAccion(log.accion);
+                        row.insertCell(3).innerText = log.tabla_afectada || '-';
+                        row.insertCell(4).innerText = log.detalle?.substring(0, 80) || '-';
+                        row.insertCell(5).innerText = log.ip_origen || '-';
+                    });
+                    if (result.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No hay registros en la bitácora</td></tr>';
+                    }
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error al cargar la bitácora</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error de conexión</td></tr>';
+            }
+        }
+
+        async function aplicarFiltros() {
+            const tabla = document.getElementById('filtro-tabla').value;
+            const usuario = document.getElementById('filtro-usuario').value;
+            const tbody = document.getElementById('bitacora-tbody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Filtrando...</td></tr>';
+            
+            let url = '/api/bitacora?';
+            if (tabla) url += `tabla=${tabla}&`;
+            if (usuario) url += `usuario=${encodeURIComponent(usuario)}&`;
+            
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    tbody.innerHTML = '';
+                    result.data.forEach(log => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).innerText = new Date(log.fecha_hora).toLocaleString('es-ES');
+                        row.insertCell(1).innerText = log.username || 'Sistema';
+                        row.insertCell(2).innerHTML = getBadgeAccion(log.accion);
+                        row.insertCell(3).innerText = log.tabla_afectada || '-';
+                        row.insertCell(4).innerText = log.detalle?.substring(0, 80) || '-';
+                        row.insertCell(5).innerText = log.ip_origen || '-';
+                    });
+                }
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error en la búsqueda</td></tr>';
+            }
+        }
+
+        loadSharedComponents();
+        cargarBitacora();
+    </script>
+</body>
+</html>
