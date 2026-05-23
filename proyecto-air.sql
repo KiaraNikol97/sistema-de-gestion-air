@@ -721,3 +721,103 @@ SELECT * FROM sys_log_auditoria ORDER BY id_log;
 -- Debe fallar: no se puede borrar un título si tiene capítulos asociados.
 -- DELETE FROM elemento_normativo WHERE id_elemento = 1;
 
+SELECT * FROM sys_log_auditoria;
+
+
+-- =====================================================
+-- TRIGGERS DE AUDITORÍA (Issue #13)
+-- =====================================================
+
+-- Trigger para INSERT en asambleista
+DELIMITER //
+CREATE TRIGGER tg_auditoria_asambleista_insert
+AFTER INSERT ON asambleista
+FOR EACH ROW
+BEGIN
+    INSERT INTO sys_log_auditoria (id_usuario, accion, tabla_afectada, detalle)
+    VALUES (@current_user_id, 'INSERT', 'asambleista', CONCAT('Nuevo asambleísta: ', NEW.nombre, ' (', NEW.cedula, ')'));
+END//
+DELIMITER ;
+
+-- Trigger para UPDATE en asambleista
+DELIMITER //
+CREATE TRIGGER tg_auditoria_asambleista_update
+AFTER UPDATE ON asambleista
+FOR EACH ROW
+BEGIN
+    DECLARE cambio VARCHAR(500);
+    SET cambio = CONCAT('ID ', NEW.id_asambleista, ': ');
+    
+    IF OLD.nombre != NEW.nombre THEN
+        SET cambio = CONCAT(cambio, 'nombre "', OLD.nombre, '" → "', NEW.nombre, '" ');
+    END IF;
+    IF OLD.cedula != NEW.cedula THEN
+        SET cambio = CONCAT(cambio, 'cédula "', OLD.cedula, '" → "', NEW.cedula, '" ');
+    END IF;
+    
+    INSERT INTO sys_log_auditoria (id_usuario, accion, tabla_afectada, detalle)
+    VALUES (@current_user_id, 'UPDATE', 'asambleista', cambio);
+END//
+DELIMITER ;
+
+-- Trigger para DELETE en asambleista
+DELIMITER //
+CREATE TRIGGER tg_auditoria_asambleista_delete
+AFTER DELETE ON asambleista
+FOR EACH ROW
+BEGIN
+    INSERT INTO sys_log_auditoria (id_usuario, accion, tabla_afectada, detalle)
+    VALUES (@current_user_id, 'DELETE', 'asambleista', CONCAT('Eliminado asambleísta: ', OLD.nombre, ' (', OLD.cedula, ')'));
+END//
+DELIMITER ;
+
+-- Trigger para INSERT en elemento_normativo
+DELIMITER //
+CREATE TRIGGER tg_auditoria_normativa_insert
+AFTER INSERT ON elemento_normativo
+FOR EACH ROW
+BEGIN
+    INSERT INTO sys_log_auditoria (id_usuario, accion, tabla_afectada, detalle)
+    VALUES (@current_user_id, 'INSERT', 'elemento_normativo', CONCAT('Nuevo elemento: ', NEW.numero_etiqueta));
+END//
+DELIMITER ;
+
+-- Trigger para UPDATE en elemento_normativo
+DELIMITER //
+CREATE TRIGGER tg_auditoria_normativa_update
+AFTER UPDATE ON elemento_normativo
+FOR EACH ROW
+BEGIN
+    IF OLD.contenido_texto != NEW.contenido_texto THEN
+        INSERT INTO sys_log_auditoria (id_usuario, accion, tabla_afectada, detalle)
+        VALUES (@current_user_id, 'UPDATE', 'elemento_normativo', CONCAT('Actualizado elemento ', NEW.numero_etiqueta));
+    END IF;
+END//
+DELIMITER ;
+
+-- Trigger para INSERT en nombramiento
+DELIMITER //
+CREATE TRIGGER tg_auditoria_nombramientos_insert
+AFTER INSERT ON nombramiento
+FOR EACH ROW
+BEGIN
+    INSERT INTO sys_log_auditoria (id_usuario, accion, tabla_afectada, detalle)
+    VALUES (@current_user_id, 'INSERT', 'nombramiento', CONCAT('Nuevo nombramiento para asambleísta ID ', NEW.id_asambleista));
+END//
+DELIMITER ;
+
+-- Trigger para UPDATE en nombramiento
+DELIMITER //
+CREATE TRIGGER tg_auditoria_nombramientos_update
+AFTER UPDATE ON nombramiento
+FOR EACH ROW
+BEGIN
+    IF OLD.estado != NEW.estado AND NEW.estado = 'Finalizado' THEN
+        INSERT INTO sys_log_auditoria (id_usuario, accion, tabla_afectada, detalle)
+        VALUES (@current_user_id, 'UPDATE', 'nombramiento', CONCAT('Finalizado nombramiento ID ', NEW.id_nombramiento));
+    END IF;
+END//
+DELIMITER ;
+
+-- Variable de sesión para usuario actual
+SET @current_user_id = 1;
