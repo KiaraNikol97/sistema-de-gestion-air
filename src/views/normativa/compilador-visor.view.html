@@ -17,10 +17,51 @@
         .visor-content .articulo { margin-bottom: 20px; padding-left: 15px; border-left: 3px solid #cbd5e0; }
         .visor-content .articulo-numero { font-weight: 700; color: #1e3c72; font-size: 1.1rem; }
         .toolbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
-        .export-btn { background: #28a745; color: white; border: none; border-radius: 8px; padding: 6px 14px; }
-        .print-btn { background: #6c757d; color: white; border: none; border-radius: 8px; padding: 6px 14px; }
+        .export-btn { background: #28a745; color: white; border: none; border-radius: 8px; padding: 6px 14px; transition: all 0.2s; }
+        .export-btn:hover { background: #218838; }
+        .print-btn { background: #6c757d; color: white; border: none; border-radius: 8px; padding: 6px 14px; transition: all 0.2s; }
+        .print-btn:hover { background: #5a6268; }
         .compilation-info { background: #f8fafc; border-radius: 8px; padding: 12px 18px; margin-top: 20px; font-size: 0.85rem; border-left: 4px solid #1e3c72; }
         .loading { display: flex; justify-content: center; align-items: center; padding: 60px; }
+        
+        /* Estilos para selector de fecha histórica (Issue #16) */
+        .fecha-selector {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 5px 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .fecha-selector input {
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 5px 8px;
+            font-size: 0.85rem;
+        }
+        .fecha-selector button {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+        .badge-historico {
+            background-color: #f59e0b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+            display: inline-block;
+        }
+        .alert-historico {
+            background-color: #fff3cd;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
         @media print { .toolbar, .card-header-custom, .navbar, .footer, .btn, .no-print { display: none !important; } .visor-content { padding: 20px; } body { background: white; } }
     </style>
 </head>
@@ -28,61 +69,395 @@
     <div id="navbar-placeholder"></div>
     <div class="container compiler-container mt-4 mb-5">
         <div class="visor-preview">
-            <div class="card-header-custom"><h3 class="mb-0"><i class="fas fa-code-branch me-2"></i>Compilador Normativo</h3><p class="mb-0 mt-1 opacity-75">Visor de reglamentos compilados con historial de reformas</p></div>
-            <div class="toolbar no-print"><div class="flex-grow-1"><label class="me-2 fw-bold">Seleccionar Reglamento:</label><select id="normativa-select" style="width: 250px;"><option value="">Cargando...</option></select></div><button id="btn-print" class="print-btn no-print"><i class="fas fa-print me-1"></i> Imprimir</button><button id="btn-export-pdf" class="export-btn no-print"><i class="fas fa-file-pdf me-1"></i> Exportar PDF</button></div>
-            <div id="loading-compilation" class="loading" style="display: none;"><div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Compilando normativa...</p></div></div>
-            <div id="visor-content" class="visor-content"><div class="text-center text-muted py-5"><i class="fas fa-file-code fa-4x mb-3 opacity-50"></i><h4>Visor de Reglamento Compilado</h4><p>Seleccione un reglamento para ver su texto compilado</p></div></div>
+            <div class="card-header-custom">
+                <h3 class="mb-0"><i class="fas fa-code-branch me-2"></i>Compilador Normativo</h3>
+                <p class="mb-0 mt-1 opacity-75">Visor de reglamentos compilados con historial de reformas</p>
+            </div>
+            
+            <div class="toolbar no-print">
+                <div class="flex-grow-1">
+                    <label class="me-2 fw-bold">Seleccionar Reglamento:</label>
+                    <select id="normativa-select" style="width: 250px;">
+                        <option value="">Cargando...</option>
+                    </select>
+                </div>
+                
+                <!-- Selector de fecha histórica (Issue #16) -->
+                <div class="fecha-selector">
+                    <i class="fas fa-calendar-alt text-muted"></i>
+                    <input type="date" id="fecha-historia" value="">
+                    <button id="btn-fecha-historia" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-search"></i> Ver en fecha
+                    </button>
+                    <button id="btn-volver-vigente" class="btn btn-sm btn-outline-success" style="display: none;">
+                        <i class="fas fa-undo"></i> Vigente
+                    </button>
+                </div>
+
+                <button id="btn-print" class="print-btn no-print">
+                    <i class="fas fa-print me-1"></i> Imprimir
+                </button>
+                <button id="btn-export-pdf" class="export-btn no-print">
+                    <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                </button>
+            </div>
+
+            <div id="loading-compilation" class="loading" style="display: none;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Compilando normativa...</p>
+                </div>
+            </div>
+
+            <div id="visor-content" class="visor-content">
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-file-code fa-4x mb-3 opacity-50"></i>
+                    <h4>Visor de Reglamento Compilado</h4>
+                    <p>Seleccione un reglamento para ver su texto compilado</p>
+                    <p class="small mt-3">Puede seleccionar una fecha para ver la normativa vigente en ese momento</p>
+                </div>
+            </div>
+
             <div id="compilation-info" class="compilation-info mx-3 mb-3 no-print" style="display: none;"></div>
         </div>
     </div>
     <div id="footer-placeholder"></div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <script>
+        // =====================================================
+        // COMPILADOR NORMATIVO CON SOPORTE HISTÓRICO (Issue #16)
+        // =====================================================
+        
         let currentNormativaId = null;
+        let currentFecha = null;
+        let esVersionHistorica = false;
+
         function loadSharedComponents() {
-            fetch('/views/shared/navbar.view.html').then(res => res.text()).then(data => document.getElementById('navbar-placeholder').innerHTML = data).catch(err => { console.error(err); document.getElementById('navbar-placeholder').innerHTML = '<nav class="navbar navbar-dark bg-dark p-3"><a class="navbar-brand" href="#">AIR - Compilador</a></nav>'; });
-            fetch('/views/shared/footer.view.html').then(res => res.text()).then(data => document.getElementById('footer-placeholder').innerHTML = data).catch(err => { console.error(err); document.getElementById('footer-placeholder').innerHTML = '<footer class="text-center text-muted py-3 mt-4 border-top"><small>Asamblea Institucional Representativa - TEC</small></footer>'; });
+            fetch('/views/shared/navbar.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(err => { 
+                    console.error(err); 
+                    document.getElementById('navbar-placeholder').innerHTML = '<nav class="navbar navbar-dark bg-dark p-3"><a class="navbar-brand" href="#">AIR - Compilador</a></nav>';
+                });
+            
+            fetch('/views/shared/footer.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(err => { 
+                    console.error(err); 
+                    document.getElementById('footer-placeholder').innerHTML = '<footer class="text-center text-muted py-3 mt-4 border-top"><small>Asamblea Institucional Representativa - TEC</small></footer>';
+                });
         }
+
         async function loadNormativasList() {
             try {
                 const response = await fetch('/api/normativa/reglamentos');
                 const result = await response.json();
                 const select = $('#normativa-select');
+                
                 if (result.success && result.data) {
-                    select.empty(); select.append('<option value="">-- Seleccione un reglamento --</option>');
-                    result.data.forEach(n => { select.append(`<option value="${n.id_reglamento}">${n.nombre_normativa} (${n.sigla})</option>`); });
-                } else { loadMockNormativasList(select); }
-                select.select2({ placeholder: "Seleccione un reglamento", allowClear: true });
-                select.on('change', function() { const val = $(this).val(); if (val) { currentNormativaId = val; loadCompiledVersion(currentNormativaId); } else { resetVisor(); } });
-            } catch (error) { console.error('Error:', error); loadMockNormativasList($('#normativa-select')); }
+                    select.empty();
+                    select.append('<option value="">-- Seleccione un reglamento --</option>');
+                    result.data.forEach(n => {
+                        select.append(`<option value="${n.id_reglamento}">${n.nombre_normativa} (${n.sigla})</option>`);
+                    });
+                } else {
+                    loadMockNormativasList(select);
+                }
+                
+                select.select2({
+                    placeholder: "Seleccione un reglamento",
+                    allowClear: true
+                });
+                
+                select.on('change', function() {
+                    const val = $(this).val();
+                    if (val) {
+                        currentNormativaId = val;
+                        // Si hay una fecha seleccionada, usarla
+                        if (currentFecha) {
+                            loadCompiledVersion(currentNormativaId, currentFecha);
+                        } else {
+                            loadCompiledVersion(currentNormativaId);
+                        }
+                    } else {
+                        resetVisor();
+                    }
+                });
+                
+                // Configurar fecha por defecto (hoy)
+                const hoy = new Date().toISOString().split('T')[0];
+                document.getElementById('fecha-historia').value = hoy;
+                
+                // Evento: Buscar en fecha específica
+                document.getElementById('btn-fecha-historia').addEventListener('click', () => {
+                    const fecha = document.getElementById('fecha-historia').value;
+                    if (fecha && currentNormativaId) {
+                        currentFecha = fecha;
+                        loadCompiledVersion(currentNormativaId, fecha);
+                    } else if (!currentNormativaId) {
+                        alert('Primero seleccione un reglamento');
+                    } else if (!fecha) {
+                        alert('Seleccione una fecha');
+                    }
+                });
+                
+                // Evento: Volver a versión vigente
+                document.getElementById('btn-volver-vigente').addEventListener('click', () => {
+                    currentFecha = null;
+                    esVersionHistorica = false;
+                    const hoy = new Date().toISOString().split('T')[0];
+                    document.getElementById('fecha-historia').value = hoy;
+                    document.getElementById('btn-volver-vigente').style.display = 'none';
+                    loadCompiledVersion(currentNormativaId);
+                });
+                
+            } catch (error) {
+                console.error('Error:', error);
+                loadMockNormativasList($('#normativa-select'));
+            }
         }
-        function loadMockNormativasList(select) { select.empty(); select.append('<option value="">-- Seleccione un reglamento --</option>'); select.append('<option value="1">Reglamento General de la Asamblea (v3.0)</option>'); select.append('<option value="2">Reglamento de Faltas (v2.1)</option>'); select.select2({ placeholder: "Seleccione un reglamento", allowClear: true }); select.off('change').on('change', function() { if ($(this).val()) { currentNormativaId = $(this).val(); loadMockCompilation(currentNormativaId); } else { resetVisor(); } }); }
-        async function loadCompiledVersion(normativaId) {
-            const loading = document.getElementById('loading-compilation'); const visorContent = document.getElementById('visor-content'); const compilationInfo = document.getElementById('compilation-info');
-            loading.style.display = 'flex'; visorContent.style.opacity = '0.5';
+
+        function loadMockNormativasList(select) {
+            select.empty();
+            select.append('<option value="">-- Seleccione un reglamento --</option>');
+            select.append('<option value="1">Reglamento General de la Asamblea (v3.0)</option>');
+            select.append('<option value="2">Reglamento de Faltas (v2.1)</option>');
+            select.select2({
+                placeholder: "Seleccione un reglamento",
+                allowClear: true
+            });
+            
+            select.off('change').on('change', function() {
+                if ($(this).val()) {
+                    currentNormativaId = $(this).val();
+                    if (currentFecha) {
+                        loadMockCompilation(currentNormativaId, currentFecha);
+                    } else {
+                        loadMockCompilation(currentNormativaId);
+                    }
+                } else {
+                    resetVisor();
+                }
+            });
+        }
+
+        async function loadCompiledVersion(normativaId, fecha = null) {
+            const loading = document.getElementById('loading-compilation');
+            const visorContent = document.getElementById('visor-content');
+            const compilationInfo = document.getElementById('compilation-info');
+            
+            loading.style.display = 'flex';
+            visorContent.style.opacity = '0.5';
+            
+            let url = `/api/normativa/compilado/${normativaId}`;
+            if (fecha) {
+                url += `?fecha=${fecha}`;
+            }
+            
             try {
-                const response = await fetch(`/api/normativa/compilado/${normativaId}`);
+                const response = await fetch(url);
                 const result = await response.json();
-                if (result.success && result.data) { renderCompilation(result.data); renderCompilationInfo(result.data); } else { loadMockCompilation(normativaId); }
-            } catch (error) { console.error('Error:', error); loadMockCompilation(normativaId); }
-            finally { loading.style.display = 'none'; visorContent.style.opacity = '1'; }
+                
+                if (result.success && result.data) {
+                    esVersionHistorica = result.data.es_version_historica || false;
+                    renderCompilation(result.data);
+                    renderCompilationInfo(result.data);
+                    
+                    // Mostrar/ocultar botón "Volver a vigente"
+                    const btnVolver = document.getElementById('btn-volver-vigente');
+                    if (esVersionHistorica) {
+                        btnVolver.style.display = 'inline-flex';
+                    } else {
+                        btnVolver.style.display = 'none';
+                    }
+                } else {
+                    loadMockCompilation(normativaId, fecha);
+                }
+            } catch (error) {
+                console.error('Error cargando compilado:', error);
+                loadMockCompilation(normativaId, fecha);
+            } finally {
+                loading.style.display = 'none';
+                visorContent.style.opacity = '1';
+            }
         }
+
         function renderCompilation(data) {
             const container = document.getElementById('visor-content');
-            let html = `<h1>${data.titulo || 'Reglamento Compilado'}</h1><p class="text-muted">${data.descripcion || 'Texto oficial compilado'}</p>`;
-            if (data.articulos && data.articulos.length > 0) { data.articulos.forEach(art => { html += `<div class="articulo" id="art-${art.id}"><div class="articulo-numero">${art.numero}</div><div class="articulo-contenido">${art.contenido || 'Sin contenido'}</div>${art.reformado_en ? `<div class="small text-muted mt-2"><i class="fas fa-edit"></i> Reformado: ${art.reformado_en}</div>` : ''}</div>`; }); }
-            else { html += `<p>No hay artículos disponibles para este reglamento.</p>`; }
+            
+            const esHistorica = data.es_version_historica || false;
+            const fechaConsulta = data.fecha_consulta || '';
+            
+            // Badge histórico si aplica
+            const badgeHistorico = esHistorica ? 
+                `<span class="badge-historico"><i class="fas fa-history me-1"></i> Vigente al: ${fechaConsulta}</span>` : '';
+            
+            let html = `
+                <h1>${data.titulo || data.reglamento?.nombre_normativa || 'Reglamento Compilado'} ${badgeHistorico}</h1>
+                <p class="text-muted">${data.descripcion || 'Texto oficial compilado que integra todas las reformas aprobadas'}</p>
+            `;
+            
+            // Alerta para vista histórica
+            if (esHistorica) {
+                html += `<div class="alert-historico">
+                    <i class="fas fa-info-circle me-2 text-warning"></i>
+                    <strong>Vista histórica:</strong> Mostrando la normativa vigente al <strong>${fechaConsulta}</strong>
+                </div>`;
+            }
+            
+            // Mostrar artículos
+            if (data.articulos && data.articulos.length > 0) {
+                data.articulos.forEach(art => {
+                    html += `
+                        <div class="articulo" id="art-${art.id}">
+                            <div class="articulo-numero">${art.numero}</div>
+                            <div class="articulo-contenido">${art.contenido || 'Sin contenido'}</div>
+                            ${art.reformado_en ? `<div class="small text-muted mt-2"><i class="fas fa-edit"></i> Reformado: ${art.reformado_en}</div>` : ''}
+                        </div>
+                    `;
+                });
+            } else if (data.arbol && data.arbol.length > 0) {
+                // Si viene en formato árbol
+                html += renderArbol(data.arbol);
+            } else {
+                html += `<p class="text-muted text-center">No hay artículos disponibles para este reglamento ${esHistorica ? 'en la fecha seleccionada' : ''}.</p>`;
+            }
+            
             container.innerHTML = html;
         }
-        function renderCompilationInfo(data) { const infoDiv = document.getElementById('compilation-info'); infoDiv.style.display = 'block'; infoDiv.innerHTML = `<i class="fas fa-info-circle me-2"></i><strong>Compilación vigente al:</strong> ${new Date().toLocaleDateString()} | <strong>Versión:</strong> ${data.version || 'Vigente'} | <strong>Total artículos:</strong> ${data.total_articulos || 0}`; }
-        function loadMockCompilation(normativaId) { const mockData = { 1: { titulo: 'Reglamento General de la Asamblea', descripcion: 'Texto compilado que integra todas las reformas aprobadas hasta la fecha.', version: '3.0', total_articulos: 45, articulos: [{ id: 1, numero: 'Artículo 1', contenido: 'El presente Reglamento tiene por objeto regular el funcionamiento de la Asamblea.' }, { id: 2, numero: 'Artículo 2', contenido: 'La Asamblea se rige por los principios de democracia participativa y transparencia.' }] }, default: { titulo: 'Reglamento Compilado', descripcion: 'Documento normativo compilado.', version: 'Vigente', total_articulos: 0, articulos: [] } }; renderCompilation(mockData[normativaId] || mockData.default); renderCompilationInfo(mockData[normativaId] || mockData.default); }
-        function resetVisor() { document.getElementById('visor-content').innerHTML = `<div class="text-center text-muted py-5"><i class="fas fa-file-code fa-4x mb-3 opacity-50"></i><h4>Visor de Reglamento Compilado</h4><p>Seleccione un reglamento para ver su texto compilado</p></div>`; document.getElementById('compilation-info').style.display = 'none'; }
-        document.getElementById('btn-print').addEventListener('click', () => window.print());
-        document.getElementById('btn-export-pdf').addEventListener('click', async () => { const element = document.getElementById('visor-content'); const infoElement = document.getElementById('compilation-info'); const originalDisplay = infoElement.style.display; infoElement.style.display = 'block'; await html2pdf().set({ margin: [0.5,0.5,0.5,0.5], filename: `compilacion_${new Date().toISOString().slice(0,10)}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } }).from(element).save(); infoElement.style.display = originalDisplay; });
-        loadSharedComponents(); loadNormativasList();
+        
+        function renderArbol(nodos, nivel = 0) {
+            let html = '';
+            for (const nodo of nodos) {
+                const margen = nivel * 20;
+                html += `
+                    <div class="articulo" style="margin-left: ${margen}px;">
+                        <div class="articulo-numero">${nodo.numero}</div>
+                        <div class="articulo-contenido">${nodo.contenido || 'Sin contenido'}</div>
+                `;
+                if (nodo.hijos && nodo.hijos.length > 0) {
+                    html += renderArbol(nodo.hijos, nivel + 1);
+                }
+                html += `</div>`;
+            }
+            return html;
+        }
+
+        function renderCompilationInfo(data) {
+            const infoDiv = document.getElementById('compilation-info');
+            infoDiv.style.display = 'block';
+            
+            let infoHtml = `
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Compilación vigente al:</strong> ${new Date().toLocaleDateString()}
+            `;
+            
+            if (data.total_articulos) {
+                infoHtml += ` | <strong>Total artículos:</strong> ${data.total_articulos}`;
+            }
+            
+            if (data.ultima_reforma) {
+                infoHtml += ` | <strong>Última reforma:</strong> ${data.ultima_reforma}`;
+            }
+            
+            if (data.es_version_historica) {
+                infoHtml += ` | <span class="text-warning"><i class="fas fa-clock me-1"></i>Vista histórica</span>`;
+            }
+            
+            infoDiv.innerHTML = infoHtml;
+        }
+
+        function loadMockCompilation(normativaId, fecha = null) {
+            const esHistorica = fecha !== null;
+            const fechaStr = fecha ? new Date(fecha).toLocaleDateString() : new Date().toLocaleDateString();
+            
+            const mockData = {
+                1: {
+                    titulo: 'Reglamento General de la Asamblea',
+                    descripcion: 'Texto compilado que integra todas las reformas aprobadas hasta la fecha.',
+                    version: '3.0',
+                    total_articulos: 45,
+                    es_version_historica: esHistorica,
+                    fecha_consulta: fechaStr,
+                    articulos: [
+                        { id: 1, numero: 'Artículo 1', contenido: 'El presente Reglamento tiene por objeto regular el funcionamiento de la Asamblea Universitaria, estableciendo sus competencias, organización y procedimientos.' },
+                        { id: 2, numero: 'Artículo 2', contenido: 'La Asamblea Universitaria se rige por los principios de democracia participativa, transparencia, publicidad de los actos y rendición de cuentas.' },
+                        { id: 3, numero: 'Artículo 3', contenido: esHistorica ? '(Versión histórica) Son miembros de la Asamblea los representantes de los sectores docente y estudiantil.' : 'Son miembros de la Asamblea Universitaria los representantes de los sectores docente, estudiantil y administrativo, elegidos conforme a las normas electorales vigentes.' }
+                    ]
+                },
+                default: {
+                    titulo: 'Reglamento Compilado',
+                    descripcion: 'Documento normativo compilado con las disposiciones vigentes.',
+                    version: 'Vigente',
+                    total_articulos: 0,
+                    es_version_historica: esHistorica,
+                    fecha_consulta: fechaStr,
+                    articulos: []
+                }
+            };
+            
+            const data = mockData[normativaId] || mockData.default;
+            renderCompilation(data);
+            renderCompilationInfo(data);
+            
+            // Mostrar/ocultar botón "Volver a vigente"
+            const btnVolver = document.getElementById('btn-volver-vigente');
+            if (esHistorica) {
+                btnVolver.style.display = 'inline-flex';
+            } else {
+                btnVolver.style.display = 'none';
+            }
+        }
+
+        function resetVisor() {
+            document.getElementById('visor-content').innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-file-code fa-4x mb-3 opacity-50"></i>
+                    <h4>Visor de Reglamento Compilado</h4>
+                    <p>Seleccione un reglamento para ver su texto compilado</p>
+                    <p class="small mt-3">Puede seleccionar una fecha para ver la normativa vigente en ese momento</p>
+                </div>
+            `;
+            document.getElementById('compilation-info').style.display = 'none';
+            document.getElementById('btn-volver-vigente').style.display = 'none';
+            currentFecha = null;
+            esVersionHistorica = false;
+        }
+
+        // Imprimir
+        document.getElementById('btn-print').addEventListener('click', () => {
+            window.print();
+        });
+
+        // Exportar PDF
+        document.getElementById('btn-export-pdf').addEventListener('click', async () => {
+            const element = document.getElementById('visor-content');
+            const infoElement = document.getElementById('compilation-info');
+            const originalDisplay = infoElement.style.display;
+            infoElement.style.display = 'block';
+            
+            const opt = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: `compilacion_normativa_${new Date().toISOString().slice(0,10)}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, letterRendering: true },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            
+            await html2pdf().set(opt).from(element).save();
+            infoElement.style.display = originalDisplay;
+        });
+
+        // Inicializar
+        loadSharedComponents();
+        loadNormativasList();
     </script>
 </body>
 </html>
