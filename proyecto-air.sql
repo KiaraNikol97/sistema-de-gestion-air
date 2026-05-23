@@ -661,3 +661,47 @@ DELIMITER ;
 
 -- Variable de sesión para usuario actual
 SET @current_user_id = 1;
+
+-- =====================================================
+-- FUNCIÓN PARA OBTENER TEXTO VIGENTE EN FECHA ESPECÍFICA
+-- ISSUE #16 - Visor de Vigencia (Compilador Histórico)
+-- =====================================================
+
+DELIMITER //
+
+CREATE FUNCTION obtenerTextoVigenteEnFecha(
+    p_id_reglamento INT,
+    p_fecha_consulta DATE
+)
+RETURNS JSON
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE resultado JSON;
+    
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'id', e.id_elemento,
+            'numero', e.numero_etiqueta,
+            'contenido', e.contenido_texto,
+            'vigencia_inicio', e.fecha_inicio_vigencia,
+            'vigencia_fin', e.fecha_fin_vigencia,
+            'nivel', (SELECT nombre FROM catalogo_nivel_reglamento WHERE id_nivel_reglamento = e.id_nivel_reglamento)
+        )
+    ) INTO resultado
+    FROM elemento_normativo e
+    WHERE e.id_reglamento = p_id_reglamento
+      AND e.fecha_inicio_vigencia <= p_fecha_consulta
+      AND (e.fecha_fin_vigencia IS NULL OR e.fecha_fin_vigencia > p_fecha_consulta)
+    ORDER BY e.orden;
+    
+    RETURN IFNULL(resultado, JSON_ARRAY());
+END//
+
+DELIMITER ;
+
+-- ÍNDICE PARA OPTIMIZAR CONSULTAS POR FECHA
+
+
+CREATE INDEX idx_elemento_fechas_vigencia 
+ON elemento_normativo(id_reglamento, fecha_inicio_vigencia, fecha_fin_vigencia);
