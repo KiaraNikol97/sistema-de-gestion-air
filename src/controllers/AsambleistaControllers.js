@@ -6,7 +6,7 @@
 // :::::::::::::::::::::::::::::::::::::::::::::::::
 
 // Conectarse
-const AsambleistaModel = require("../models/AsambleistaModels");
+const AsambleistaModel = require('../models/AsambleistaModels');
 
 // Mostrar listado de asambleístas
 async function mostrarAsambleistas(req, res) {
@@ -30,7 +30,6 @@ async function mostrarAsambleistas(req, res) {
         });
     }
 }
-
 
 // Registrar nuevo asambleísta
 async function registrarAsambleista(req, res) {
