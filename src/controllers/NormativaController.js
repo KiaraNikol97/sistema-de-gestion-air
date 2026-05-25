@@ -5,7 +5,7 @@ const NormativaModel = require('../models/NormativaModel');
 
 class NormativaController {
     constructor() {
-        this.model = new NormativaModel();
+        this.model = new NormativaModel();  
     }
     
     // Mostrar página principal del compilador
