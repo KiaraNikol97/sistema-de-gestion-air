@@ -3,23 +3,14 @@
 // Autora: María Fernanda Vargas Guzmán
 // Sprint 2 - Semana 2 
 // Modelo MVC
+// CORREGIDO para PostgreSQL/Supabase
 // :::::::::::::::::::::::::::::::::::::::::::::::::
 
-// Conectar 
-const db = require("../config/db");
+const db = require('../config/db');
 
+class ReformaModels {
 
-class Reforma {
-
-    // Registrar una reforma normativa
     async registrarReforma(datos) {
-
-        /*
-        Inserta una reforma en reforma_aplicada.
-        La lógica de vigencia/versionamiento se maneja desde la BD
-        mediante el trigger tg_vigencia_normativa.
-        */
-
         const sql = `
             INSERT INTO reforma_aplicada (
                 id_resolucion,
@@ -27,65 +18,53 @@ class Reforma {
                 texto_anterior,
                 texto_nuevo,
                 fecha_inicio_vigencia,
-                id_tipo_reforma
+                id_tipo_reforma,
+                id_usuario_registro
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id_reforma
         `;
 
         const valores = [
-            datos.id_resolucion,
+            datos.id_resolucion || null,
             datos.id_elemento_normativo,
             datos.texto_anterior,
             datos.texto_nuevo,
             datos.fecha_inicio_vigencia,
-            datos.id_tipo_reforma
+            datos.id_tipo_reforma,
+            datos.id_usuario_registro || 1
         ];
 
-        const [resultado] = await db.query(sql, valores);
-
-        return resultado;
+        const resultado = await db.query(sql, valores);
+        return resultado.rows[0];
     }
 
-
-    // Obtener versión vigente de un elemento normativo
     async obtenerElementoVigente(id_reglamento, numero_etiqueta) {
-
         const sql = `
             SELECT *
             FROM elemento_normativo
-            WHERE id_reglamento = ?
-              AND numero_etiqueta = ?
+            WHERE id_reglamento = $1
+              AND numero_etiqueta = $2
               AND fecha_fin_vigencia IS NULL
             LIMIT 1
         `;
 
-        const [filas] = await db.query(sql, [
-            id_reglamento,
-            numero_etiqueta
-        ]);
-
-        return filas[0];
+        const resultado = await db.query(sql, [id_reglamento, numero_etiqueta]);
+        return resultado.rows[0];
     }
 
-
-    // Consultar historial de versiones
     async obtenerHistorialVersiones(id_reglamento, numero_etiqueta) {
-
         const sql = `
             SELECT *
             FROM elemento_normativo
-            WHERE id_reglamento = ?
-              AND numero_etiqueta = ?
+            WHERE id_reglamento = $1
+              AND numero_etiqueta = $2
             ORDER BY fecha_inicio_vigencia DESC
         `;
 
-        const [filas] = await db.query(sql, [
-            id_reglamento,
-            numero_etiqueta
-        ]);
-
-        return filas;
+        const resultado = await db.query(sql, [id_reglamento, numero_etiqueta]);
+        return resultado.rows;
     }
 }
 
-module.exports = Reforma;
+module.exports = ReformaModels;
