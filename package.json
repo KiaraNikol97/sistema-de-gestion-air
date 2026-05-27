@@ -1,0 +1,31 @@
+{
+  "name": "sistema-de-gestion-air",
+  "version": "1.0.0",
+  "description": "https://canva.link/fi4wjp04g1h0wkl\r Aquí va a estar el video, aun en proceso",
+  "main": "server.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KiaraNikol97/sistema-de-gestion-air.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/KiaraNikol97/sistema-de-gestion-air/issues"
+  },
+  "homepage": "https://github.com/KiaraNikol97/sistema-de-gestion-air#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "mysql2": "^3.22.4"
+  }
+}
