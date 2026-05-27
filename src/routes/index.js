@@ -63,6 +63,50 @@ router.get('/api/catalogos/puestos', async (req, res) => {
 });
 
 // =====================================================
+// RUTAS DE BITÁCORA (Issue #13)
+// =====================================================
+
+router.get('/api/bitacora', async (req, res) => {
+    const db = require('../config/db');
+    
+    try {
+        // Consulta simple sin filtros complejos
+        const query = `
+            SELECT 
+                l.id_log, 
+                l.accion, 
+                l.tabla_afectada, 
+                l.detalle, 
+                l.ip_origen, 
+                l.fecha_hora, 
+                COALESCE(u.username, 'Sistema') as username
+            FROM sys_log_auditoria l
+            LEFT JOIN sys_usuario u ON l.id_usuario = u.id_usuario
+            ORDER BY l.fecha_hora DESC 
+            LIMIT 100
+        `;
+        
+        const result = await db.query(query);
+        
+        // Si no hay datos, devolver array vacío
+        res.json({ 
+            success: true, 
+            data: result.rows || [],
+            message: result.rows.length === 0 ? 'No hay registros en la bitácora' : null
+        });
+        
+    } catch (error) {
+        console.error('Error en bitácora:', error);
+        // En caso de error, devolver array vacío en lugar de error 500
+        res.json({ 
+            success: true, 
+            data: [],
+            message: 'La tabla de bitácora aún no tiene registros o no existe'
+        });
+    }
+});
+
+// =====================================================
 // RUTAS DE NORMATIVA
 // =====================================================
 router.get('/api/normativa/reglamentos', normativaController.getReglamentos.bind(normativaController));
