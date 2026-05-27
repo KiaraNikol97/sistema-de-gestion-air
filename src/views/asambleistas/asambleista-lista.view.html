@@ -3,237 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Listado de Asambleístas - AIR</title>
+    <title>Asambleístas - Sistema AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
             background-color: #f5f7fb;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        /* Contenedor principal */
+        
         .main-container {
-            flex: 1;
-            padding: 20px;
             max-width: 1400px;
             margin: 0 auto;
-            width: 100%;
+            padding: 20px;
         }
-
-        /* Tabla */
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 10px;
-            background-color: white;
-            border-radius: 12px;
+        
+        /* Header con gradiente */
+        .page-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .page-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .page-header p {
+            opacity: 0.85;
+            margin-bottom: 0;
+        }
+        
+        /* Tarjeta de búsqueda */
+        .search-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        
+        /* Tabla moderna */
+        .table-custom {
+            background: white;
+            border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-
-        th, td {
-            border: 1px solid #e2e8f0;
-            padding: 12px;
-            text-align: left;
-        }
-
-        th {
+        
+        .table-custom thead th {
             background-color: #f8fafc;
-            font-weight: 600;
             color: #1e3c72;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 15px;
         }
-
-        tr:hover {
+        
+        .table-custom tbody td {
+            padding: 12px 15px;
+            vertical-align: middle;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .table-custom tbody tr:hover {
             background-color: #f8fafc;
         }
-
+        
         /* Badges */
-        .badge-verde {
+        .badge-vigente {
             background-color: #10b981;
             color: white;
-            padding: 4px 12px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
-
-        .badge-gris {
+        
+        .badge-sin-nombramiento {
             background-color: #6c757d;
             color: white;
-            padding: 4px 12px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
-
-        .badge-cargando {
-            background-color: #f59e0b;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
-
+        
         /* Botones */
-        button {
-            padding: 6px 12px;
-            margin: 2px;
-            cursor: pointer;
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             border: none;
-            border-radius: 8px;
-            font-size: 13px;
+            border-radius: 10px;
+            padding: 8px 20px;
+            color: white;
+            transition: transform 0.2s;
+        }
+        
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+        }
+        
+        .btn-outline-custom {
+            border: 1px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 8px 16px;
+            background: white;
             transition: all 0.2s;
         }
-
-        .btn-editar {
-            background-color: #3b82f6;
-            color: white;
+        
+        .btn-outline-custom:hover {
+            background: #f1f5f9;
+            border-color: #1e3c72;
         }
-
-        .btn-editar:hover {
-            background-color: #2563eb;
-        }
-
-        .btn-nombramientos {
-            background-color: #8b5cf6;
-            color: white;
-        }
-
-        .btn-nombramientos:hover {
-            background-color: #7c3aed;
-        }
-
-        .btn-nuevo {
-            background-color: #10b981;
-            color: white;
-            padding: 8px 16px;
-        }
-
-        .btn-nuevo:hover {
-            background-color: #059669;
-        }
-
-        .btn-buscar {
-            background-color: #3b82f6;
-            color: white;
-        }
-
-        .btn-limpiar {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        /* Formularios */
-        .buscador-form {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .buscador-form input {
-            padding: 10px 15px;
-            border: 1px solid #e2e8f0;
+        
+        .btn-icon {
+            background: none;
+            border: none;
+            padding: 5px 8px;
+            margin: 0 2px;
             border-radius: 8px;
-            width: 300px;
-            font-size: 14px;
+            transition: all 0.2s;
         }
-
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
+        
+        .btn-icon-edit {
+            color: #3b82f6;
         }
-
+        
+        .btn-icon-edit:hover {
+            background-color: #dbeafe;
+        }
+        
+        .btn-icon-nombramientos {
+            color: #8b5cf6;
+        }
+        
+        .btn-icon-nombramientos:hover {
+            background-color: #ede9fe;
+        }
+        
+        /* Loading */
         .loading {
             text-align: center;
             padding: 40px;
-            color: #6c757d;
         }
-
+        
         .error-msg {
             background-color: #fee2e2;
             color: #dc2626;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 12px 20px;
+            border-radius: 12px;
             margin-bottom: 20px;
             border-left: 4px solid #dc2626;
+        }
+        
+        /* Animaciones */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
         }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <div id="navbar-placeholder"></div>
 
-    <!-- Contenido principal -->
     <div class="main-container">
-        <div class="header-actions">
-            <h1><i style="color: #1e3c72;">🗳️</i> Listado de Asambleístas - AIR</h1>
-            <a href="/asambleistas/registro">
-                <button class="btn-nuevo">+ Nuevo Asambleísta</button>
-            </a>
+        <!-- Header -->
+        <div class="page-header fade-in">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-users me-3"></i>Gestión de Asambleístas</h1>
+                    <p>Administre los miembros de la Asamblea Institucional Representativa</p>
+                </div>
+                <a href="/asambleistas/registro">
+                    <button class="btn-primary-custom">
+                        <i class="fas fa-plus me-2"></i>Nuevo Asambleísta
+                    </button>
+                </a>
+            </div>
         </div>
 
         <!-- Buscador -->
-        <div class="buscador-form">
-            <input type="text" id="buscar-texto" placeholder="Buscar por nombre o cédula...">
-            <button class="btn-buscar" onclick="buscarAsambleista()"> Buscar</button>
-            <button class="btn-limpiar" onclick="cargarListaCompleta()"> Mostrar todos</button>
+        <div class="search-card fade-in">
+            <div class="row align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold text-muted mb-2">
+                        <i class="fas fa-search me-1"></i> Buscar asambleísta
+                    </label>
+                    <div class="input-group">
+                        <input type="text" id="buscar-texto" class="form-control form-control-lg" 
+                               placeholder="Buscar por nombre o cédula..." style="border-radius: 12px 0 0 12px;">
+                        <button class="btn btn-primary" onclick="buscarAsambleista()" style="border-radius: 0 12px 12px 0;">
+                            <i class="fas fa-search me-1"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn-outline-custom" onclick="cargarListaCompleta()">
+                        <i class="fas fa-sync-alt me-1"></i> Mostrar todos
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Mensaje de error -->
-        <div id="error-msg" class="error-msg" style="display: none;"></div>
+        <div id="error-msg" class="error-msg fade-in" style="display: none;"></div>
 
         <!-- Loading -->
         <div id="loading" class="loading" style="display: none;">
-            <div>Cargando asambleístas...</div>
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-3 text-muted">Cargando asambleístas...</p>
         </div>
 
         <!-- Tabla de asambleístas -->
-        <table id="tabla-asambleistas">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Cédula</th>
-                    <th>Nombre</th>
-                    <th>Correo</th>
-                    <th>Estado Nombramiento</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="lista-asambleistas">
-                <tr><td colspan="6" style="text-align: center;">Cargando asambleístas...</td></tr>
-            </tbody>
-        </table>
+        <div class="table-custom fade-in">
+            <div class="table-responsive">
+                <table class="table table-custom mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%">ID</th>
+                            <th style="width: 15%">Cédula</th>
+                            <th style="width: 30%">Nombre</th>
+                            <th style="width: 25%">Correo</th>
+                            <th style="width: 10%">Estado</th>
+                            <th style="width: 15%">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-asambleistas">
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="fas fa-users fa-3x mb-3 opacity-50"></i>
+                                <p>Cargando asambleístas...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <!-- Footer -->
     <div id="footer-placeholder"></div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        
-        //  CON DATOS REALES DESDE LA BASE DE DATOS
-        
+        // =====================================================
+        // VERSIÓN CON DATOS REALES DESDE LA BASE DE DATOS
+        // =====================================================
 
-        // Cargar navbar y footer compartidos
         function loadSharedComponents() {
-            // Navbar
             fetch('/views/shared/navbar.view.html')
                 .then(res => {
                     if (!res.ok) throw new Error('Navbar no encontrado');
@@ -243,13 +272,19 @@
                 .catch(err => {
                     console.error('Error cargando navbar:', err);
                     document.getElementById('navbar-placeholder').innerHTML = `
-                        <nav style="background: #1e3c72; color: white; padding: 15px; text-align: center;">
-                            <strong>AIR - Sistema Legislativo</strong>
+                        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                            <div class="container">
+                                <a class="navbar-brand" href="/"><i class="fas fa-gavel me-2"></i>AIR - Sistema Legislativo</a>
+                                <div class="collapse navbar-collapse">
+                                    <ul class="navbar-nav ms-auto">
+                                        <li class="nav-item"><a class="nav-link" href="/asambleistas">Asambleístas</a></li>
+                                    </ul>
+                                </div>
+                            </div>
                         </nav>
                     `;
                 });
             
-            // Footer
             fetch('/views/shared/footer.view.html')
                 .then(res => {
                     if (!res.ok) throw new Error('Footer no encontrado');
@@ -259,28 +294,26 @@
                 .catch(err => {
                     console.error('Error cargando footer:', err);
                     document.getElementById('footer-placeholder').innerHTML = `
-                        <footer style="background: #f8fafc; text-align: center; padding: 15px; margin-top: 30px; border-top: 1px solid #e2e8f0;">
-                            <small>Asamblea Institucional Representativa - TEC</small>
+                        <footer class="text-center text-muted py-3 mt-4 border-top">
+                            <small>Asamblea Institucional Representativa - TEC | Sistema de Gestión Legislativa</small>
                         </footer>
                     `;
                 });
         }
 
-        // Mostrar/ocultar loading
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
-
         function showError(message) {
             const errorDiv = document.getElementById('error-msg');
-            errorDiv.innerText = message;
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
             errorDiv.style.display = 'block';
             setTimeout(() => {
                 errorDiv.style.display = 'none';
             }, 5000);
         }
 
-        // Cargar lista completa desde la API
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
         async function cargarListaCompleta() {
             const tbody = document.getElementById('lista-asambleistas');
             showLoading(true);
@@ -292,20 +325,23 @@
                 if (!response.ok) throw new Error('Error en la respuesta del servidor');
                 
                 if (result.success && result.data) {
-                    tbody.innerHTML = '';
-                    
                     if (result.data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay asambleístas registrados</td></tr>';
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                                    <p>No hay asambleístas registrados</p>
+                                    <a href="/asambleistas/registro" class="btn btn-sm btn-primary">Registrar primer asambleísta</a>
+                                </td>
+                            </tr>
+                        `;
                         return;
                     }
                     
-                    // Para cada asambleísta, verificar si tiene nombramiento vigente
+                    tbody.innerHTML = '';
+                    
                     for (const a of result.data) {
                         const row = tbody.insertRow();
-                        row.insertCell(0).innerText = a.id_asambleista;
-                        row.insertCell(1).innerText = a.cedula;
-                        row.insertCell(2).innerText = a.nombre;
-                        row.insertCell(3).innerText = a.correo_institucional || '-';
                         
                         // Verificar nombramiento vigente
                         let tieneVigente = false;
@@ -317,29 +353,52 @@
                             console.error('Error verificando nombramiento:', e);
                         }
                         
+                        row.insertCell(0).innerHTML = `<span class="fw-bold text-primary">${a.id_asambleista}</span>`;
+                        row.insertCell(1).innerHTML = `<span class="font-monospace">${a.cedula}</span>`;
+                        row.insertCell(2).innerHTML = `<strong>${a.nombre}</strong>`;
+                        row.insertCell(3).innerHTML = a.correo_institucional || '<span class="text-muted">-</span>';
                         row.insertCell(4).innerHTML = tieneVigente ? 
-                            '<span class="badge-verde">VIGENTE</span>' : 
-                            '<span class="badge-gris">SIN NOMBRAMIENTO</span>';
-                        
+                            '<span class="badge-vigente"><i class="fas fa-check-circle me-1"></i> VIGENTE</span>' : 
+                            '<span class="badge-sin-nombramiento"><i class="fas fa-clock me-1"></i> SIN NOMBRAMIENTO</span>';
                         row.insertCell(5).innerHTML = `
-                            <button class="btn-editar" onclick="editarAsambleista(${a.id_asambleista})"> Editar</button>
-                            <button class="btn-nombramientos" onclick="verNombramientos(${a.id_asambleista})"> Nombramientos</button>
+                            <button class="btn-icon btn-icon-edit" onclick="editarAsambleista(${a.id_asambleista})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon btn-icon-nombramientos" onclick="verNombramientos(${a.id_asambleista})" title="Nombramientos">
+                                <i class="fas fa-id-card"></i>
+                            </button>
                         `;
                     }
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Error al cargar los datos</td></tr>';
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="fas fa-exclamation-triangle fa-3x mb-3 opacity-50"></i>
+                                <p>Error al cargar los datos</p>
+                            </td>
+                        </tr>
+                    `;
                     showError(result.message || 'Error al cargar asambleístas');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Error de conexión con el servidor</td></tr>';
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="fas fa-plug fa-3x mb-3 opacity-50"></i>
+                            <p>Error de conexión con el servidor</p>
+                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="cargarListaCompleta()">
+                                <i class="fas fa-sync-alt me-1"></i> Reintentar
+                            </button>
+                        </td>
+                    </tr>
+                `;
                 showError('Error de conexión: ' + error.message);
             } finally {
                 showLoading(false);
             }
         }
 
-        // Buscar asambleístas
         async function buscarAsambleista() {
             const texto = document.getElementById('buscar-texto').value.trim();
             
@@ -356,19 +415,25 @@
                 const result = await response.json();
                 
                 if (result.success && result.data) {
-                    tbody.innerHTML = '';
-                    
                     if (result.data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No se encontraron asambleístas</td></tr>';
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <i class="fas fa-search fa-3x mb-3 opacity-50"></i>
+                                    <p>No se encontraron asambleístas con "${texto}"</p>
+                                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="cargarListaCompleta()">
+                                        <i class="fas fa-sync-alt me-1"></i> Mostrar todos
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
                         return;
                     }
                     
+                    tbody.innerHTML = '';
+                    
                     for (const a of result.data) {
                         const row = tbody.insertRow();
-                        row.insertCell(0).innerText = a.id_asambleista;
-                        row.insertCell(1).innerText = a.cedula;
-                        row.insertCell(2).innerText = a.nombre;
-                        row.insertCell(3).innerText = a.correo_institucional || '-';
                         
                         let tieneVigente = false;
                         try {
@@ -377,30 +442,42 @@
                             tieneVigente = vigResult.success && vigResult.data !== null;
                         } catch (e) {}
                         
+                        row.insertCell(0).innerHTML = `<span class="fw-bold text-primary">${a.id_asambleista}</span>`;
+                        row.insertCell(1).innerHTML = `<span class="font-monospace">${a.cedula}</span>`;
+                        row.insertCell(2).innerHTML = `<strong>${a.nombre}</strong>`;
+                        row.insertCell(3).innerHTML = a.correo_institucional || '<span class="text-muted">-</span>';
                         row.insertCell(4).innerHTML = tieneVigente ? 
-                            '<span class="badge-verde">VIGENTE</span>' : 
-                            '<span class="badge-gris">SIN NOMBRAMIENTO</span>';
-                        
+                            '<span class="badge-vigente"><i class="fas fa-check-circle me-1"></i> VIGENTE</span>' : 
+                            '<span class="badge-sin-nombramiento"><i class="fas fa-clock me-1"></i> SIN NOMBRAMIENTO</span>';
                         row.insertCell(5).innerHTML = `
-                            <button class="btn-editar" onclick="editarAsambleista(${a.id_asambleista})">✏️ Editar</button>
-                            <button class="btn-nombramientos" onclick="verNombramientos(${a.id_asambleista})">📋 Nombramientos</button>
+                            <button class="btn-icon btn-icon-edit" onclick="editarAsambleista(${a.id_asambleista})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon btn-icon-nombramientos" onclick="verNombramientos(${a.id_asambleista})" title="Nombramientos">
+                                <i class="fas fa-id-card"></i>
+                            </button>
                         `;
                     }
                 }
             } catch (error) {
                 console.error('Error:', error);
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Error en la búsqueda</td></tr>';
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="fas fa-plug fa-3x mb-3 opacity-50"></i>
+                            <p>Error en la búsqueda</p>
+                        </td>
+                    </tr>
+                `;
             } finally {
                 showLoading(false);
             }
         }
 
-        // Editar asambleísta (redirige al formulario de registro con el ID)
         function editarAsambleista(id) {
             window.location.href = `/asambleistas/registro?id=${id}`;
         }
 
-        // Ver nombramientos (redirige al historial)
         function verNombramientos(id) {
             window.location.href = `/asambleistas/nombramientos/${id}`;
         }
@@ -408,6 +485,13 @@
         // Inicializar
         loadSharedComponents();
         cargarListaCompleta();
+        
+        // Enter key para buscar
+        document.getElementById('buscar-texto').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                buscarAsambleista();
+            }
+        });
     </script>
 </body>
 </html>
