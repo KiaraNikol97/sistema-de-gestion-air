@@ -9,7 +9,7 @@
     <style>
         body { background-color: #f5f7fb; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-        .form-container { max-width: 900px; margin: 0 auto; }
+        .form-container { max-width: 1000px; margin: 0 auto; }
         
         .card-custom {
             background: white;
@@ -25,16 +25,8 @@
             padding: 20px 25px;
         }
         
-        .card-header-custom h2 {
-            margin: 0;
-            font-size: 1.3rem;
-        }
-        
-        .card-header-custom p {
-            margin: 5px 0 0;
-            opacity: 0.85;
-            font-size: 0.85rem;
-        }
+        .card-header-custom h2 { margin: 0; font-size: 1.3rem; }
+        .card-header-custom p { margin: 5px 0 0; opacity: 0.85; font-size: 0.85rem; }
         
         .card-body-custom { padding: 25px; }
         
@@ -70,6 +62,15 @@
             color: white;
         }
         
+        .btn-danger-custom {
+            background: #dc3545;
+            border: none;
+            border-radius: 8px;
+            padding: 5px 12px;
+            color: white;
+            font-size: 0.8rem;
+        }
+        
         .badge-vigente { background-color: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; }
         .badge-historico { background-color: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; }
         
@@ -82,6 +83,9 @@
         
         .error-msg { background-color: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #dc2626; display: none; }
         .success-msg { background-color: #d1fae5; color: #065f46; padding: 12px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #10b981; display: none; }
+        
+        .loading-small { display: inline-block; width: 1rem; height: 1rem; border: 2px solid #f3f3f3; border-top: 2px solid #1e3c72; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -94,7 +98,7 @@
             <div id="error-msg" class="error-msg"></div>
             <div id="success-msg" class="success-msg"></div>
 
-            <!-- Datos Personales -->
+            <!-- Tarjeta: Datos Personales -->
             <div class="card-custom">
                 <div class="card-header-custom">
                     <h2><i class="fas fa-user me-2"></i>Datos Personales</h2>
@@ -125,7 +129,7 @@
                 </div>
             </div>
 
-            <!-- Nombramientos -->
+            <!-- Tarjeta: Nombramientos (solo visible en edición) -->
             <div class="card-custom" id="nombramientos-section" style="display: none;">
                 <div class="card-header-custom">
                     <h2><i class="fas fa-id-card me-2"></i>Gestión de Nombramientos</h2>
@@ -139,10 +143,17 @@
                     <div class="table-responsive">
                         <table class="table table-custom mb-4">
                             <thead>
-                                <tr><th>Sector</th><th>Puesto</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Estado</th><th>Acciones</th></tr>
+                                <tr>
+                                    <th>Sector</th>
+                                    <th>Puesto</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Fecha Fin</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
                             </thead>
                             <tbody id="nombramientos-lista">
-                                <tr><td colspan="6" class="text-center text-muted py-4">Seleccione un asambleísta para ver sus nombramientos</td></tr>
+                                <tr><td colspan="6" class="text-center text-muted py-4">Seleccione un asambleísta para ver sus nombramientos</td</th
                             </tbody>
                         </table>
                     </div>
@@ -153,11 +164,15 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Sector</label>
-                            <select id="nombramiento_sector" class="form-select"><option value="">-- Seleccione --</option></select>
+                            <select id="nombramiento_sector" class="form-select">
+                                <option value="">-- Seleccione --</option>
+                            </select>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Puesto</label>
-                            <select id="nombramiento_puesto" class="form-select"><option value="">-- Seleccione --</option></select>
+                            <select id="nombramiento_puesto" class="form-select">
+                                <option value="">-- Seleccione --</option>
+                            </select>
                         </div>
                         <div class="col-md-2 mb-3">
                             <label class="form-label">Fecha inicio</label>
@@ -184,26 +199,105 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // =====================================================
+        // VARIABLES GLOBALES
+        // =====================================================
         let currentAsambleistaId = null;
 
+        // =====================================================
+        // FUNCIONES COMPARTIDAS
+        // =====================================================
         function loadSharedComponents() {
-            fetch('/views/shared/navbar.view.html').then(res => res.text()).then(data => document.getElementById('navbar-placeholder').innerHTML = data).catch(() => document.getElementById('navbar-placeholder').innerHTML = '<nav class="navbar navbar-dark bg-dark p-3"><a class="navbar-brand" href="#">AIR</a></nav>');
-            fetch('/views/shared/footer.view.html').then(res => res.text()).then(data => document.getElementById('footer-placeholder').innerHTML = data).catch(() => document.getElementById('footer-placeholder').innerHTML = '<footer class="text-center text-muted py-3 mt-4 border-top"><small>Asamblea Institucional Representativa - TEC</small></footer>');
+            fetch('/views/shared/navbar.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(() => {
+                    document.getElementById('navbar-placeholder').innerHTML = `
+                        <nav class="navbar navbar-dark bg-dark p-3">
+                            <a class="navbar-brand" href="#">AIR - Sistema Legislativo</a>
+                        </nav>
+                    `;
+                });
+            
+            fetch('/views/shared/footer.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(() => {
+                    document.getElementById('footer-placeholder').innerHTML = `
+                        <footer class="text-center text-muted py-3 mt-4 border-top">
+                            <small>Asamblea Institucional Representativa - TEC</small>
+                        </footer>
+                    `;
+                });
         }
 
-        function showError(msg) { const div = document.getElementById('error-msg'); div.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${msg}`; div.style.display = 'block'; setTimeout(() => div.style.display = 'none', 5000); }
-        function showSuccess(msg) { const div = document.getElementById('success-msg'); div.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${msg}`; div.style.display = 'block'; setTimeout(() => div.style.display = 'none', 3000); }
+        function showError(msg) {
+            const div = document.getElementById('error-msg');
+            div.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${msg}`;
+            div.style.display = 'block';
+            setTimeout(() => div.style.display = 'none', 5000);
+        }
 
-        async function cargarSectores() { try { const res = await fetch('/api/catalogos/sectores'); const data = await res.json(); if(data.success) { const select = document.getElementById('nombramiento_sector'); select.innerHTML = '<option value="">-- Seleccione sector --</option>'; data.data.forEach(s => select.innerHTML += `<option value="${s.id_sector}">${s.nombre}</option>`); } } catch(e) { console.error(e); } }
-        async function cargarPuestos() { try { const res = await fetch('/api/catalogos/puestos'); const data = await res.json(); if(data.success) { const select = document.getElementById('nombramiento_puesto'); select.innerHTML = '<option value="">-- Seleccione puesto --</option>'; data.data.forEach(p => select.innerHTML += `<option value="${p.id_puesto}">${p.nombre}</option>`); } } catch(e) { console.error(e); } }
+        function showSuccess(msg) {
+            const div = document.getElementById('success-msg');
+            div.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${msg}`;
+            div.style.display = 'block';
+            setTimeout(() => div.style.display = 'none', 3000);
+        }
 
-        function obtenerIdDeURL() { return new URLSearchParams(window.location.search).get('id'); }
+        // =====================================================
+        // CARGAR CATÁLOGOS
+        // =====================================================
+        async function cargarSectores() {
+            try {
+                const response = await fetch('/api/catalogos/sectores');
+                const data = await response.json();
+                if (data.success) {
+                    const select = document.getElementById('nombramiento_sector');
+                    select.innerHTML = '<option value="">-- Seleccione sector --</option>';
+                    data.data.forEach(s => {
+                        select.innerHTML += `<option value="${s.id_sector}">${s.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando sectores:', error);
+            }
+        }
 
+        async function cargarPuestos() {
+            try {
+                const response = await fetch('/api/catalogos/puestos');
+                const data = await response.json();
+                if (data.success) {
+                    const select = document.getElementById('nombramiento_puesto');
+                    select.innerHTML = '<option value="">-- Seleccione puesto --</option>';
+                    data.data.forEach(p => {
+                        select.innerHTML += `<option value="${p.id_puesto}">${p.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando puestos:', error);
+            }
+        }
+
+        // =====================================================
+        // OBTENER ID DE LA URL
+        // =====================================================
+        function obtenerIdDeURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+
+        // =====================================================
+        // CARGAR ASAMBLEÍSTA PARA EDICIÓN
+        // =====================================================
         async function cargarAsambleistaParaEdicion(id) {
             currentAsambleistaId = id;
+            
             try {
-                const res = await fetch(`/api/asambleistas/${id}`);
-                const data = await res.json();
+                const response = await fetch(`/api/asambleistas/${id}`);
+                const data = await response.json();
+                
                 if (data.success) {
                     const a = data.data;
                     document.getElementById('asambleista_id').value = a.id_asambleista;
@@ -214,80 +308,221 @@
                     document.getElementById('btn-cancelar').style.display = 'inline-block';
                     document.getElementById('nombramientos-section').style.display = 'block';
                     cargarNombramientos(a.id_asambleista);
+                } else {
+                    showError('Error al cargar los datos del asambleísta');
                 }
-            } catch(e) { showError('Error al cargar datos'); }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión al cargar el asambleísta');
+            }
         }
 
+        // =====================================================
+        // CARGAR NOMBRAMIENTOS
+        // =====================================================
         async function cargarNombramientos(asambleistaId) {
             const tbody = document.getElementById('nombramientos-lista');
             const loading = document.getElementById('nombramientos-loading');
             loading.style.display = 'block';
+            
             try {
-                const res = await fetch(`/api/nombramientos/historial/${asambleistaId}`);
-                const data = await res.json();
+                const response = await fetch(`/api/nombramientos/historial/${asambleistaId}`);
+                const data = await response.json();
                 loading.style.display = 'none';
+                
                 if (data.success && data.data && data.data.length > 0) {
                     tbody.innerHTML = '';
                     data.data.forEach(n => {
                         const row = tbody.insertRow();
-                        row.insertCell(0).innerText = n.sector;
-                        row.insertCell(1).innerText = n.puesto;
-                        row.insertCell(2).innerText = n.fecha_inicio;
+                        row.insertCell(0).innerText = n.sector || '-';
+                        row.insertCell(1).innerText = n.puesto || '-';
+                        row.insertCell(2).innerText = n.fecha_inicio || '-';
                         row.insertCell(3).innerText = n.fecha_fin || 'Actual';
-                        row.insertCell(4).innerHTML = n.estado_real === 'Vigente' ? '<span class="badge-vigente">VIGENTE</span>' : '<span class="badge-historico">HISTÓRICO</span>';
-                        row.insertCell(5).innerHTML = n.estado_real === 'Vigente' ? `<button class="btn btn-sm btn-danger" onclick="finalizarNombramiento(${n.id_nombramiento})">Finalizar</button>` : '-';
+                        row.insertCell(4).innerHTML = n.estado_real === 'Vigente' ? 
+                            '<span class="badge-vigente">VIGENTE</span>' : 
+                            '<span class="badge-historico">HISTÓRICO</span>';
+                        row.insertCell(5).innerHTML = n.estado_real === 'Vigente' ? 
+                            `<button class="btn-danger-custom" onclick="finalizarNombramiento(${n.id_nombramiento})">Finalizar</button>` : 
+                            '-';
                     });
-                } else { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3">No hay nombramientos registrados</td></tr>'; }
-            } catch(e) { loading.style.display = 'none'; tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3">Error al cargar</td></tr>'; }
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No hay nombramientos registrados</td></tr>';
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-danger">Error al cargar nombramientos</td></tr>';
+            }
         }
 
+        // =====================================================
+        // FINALIZAR NOMBRAMIENTO
+        // =====================================================
         async function finalizarNombramiento(id) {
-            const fechaFin = prompt('Fecha de finalización (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
-            if(!fechaFin) return;
+            const fechaFin = prompt('Ingrese la fecha de finalización (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!fechaFin) return;
+            
             try {
-                const res = await fetch(`/api/nombramientos/${id}/finalizar`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fecha_fin: fechaFin }) });
-                const data = await res.json();
-                if(data.success) { showSuccess('Nombramiento finalizado'); cargarNombramientos(currentAsambleistaId); }
-                else { showError(data.message); }
-            } catch(e) { showError('Error de conexión'); }
+                const response = await fetch(`/api/nombramientos/${id}/finalizar`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fecha_fin: fechaFin })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Nombramiento finalizado exitosamente');
+                    cargarNombramientos(currentAsambleistaId);
+                } else {
+                    showError(data.message || 'Error al finalizar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión');
+            }
         }
 
+        // =====================================================
+        // GUARDAR ASAMBLEÍSTA (CREAR O ACTUALIZAR)
+        // =====================================================
         async function guardarAsambleista() {
             const id = document.getElementById('asambleista_id').value;
             const nombre = document.getElementById('nombre').value;
             const cedula = document.getElementById('cedula').value;
             const correo = document.getElementById('correo').value;
-            if(!nombre || !cedula) { showError('Nombre y cédula son obligatorios'); return; }
+            
+            if (!nombre || !cedula) {
+                showError('Nombre y cédula son obligatorios');
+                return;
+            }
+            
+            // Validar formato de cédula
             const formatoCedula = /^[0-9]-[0-9]{4}-[0-9]{4}$/;
-            if(!formatoCedula.test(cedula)) { showError('Formato de cédula inválido (Ej: 1-2345-6789)'); return; }
+            if (!formatoCedula.test(cedula)) {
+                showError('Formato de cédula inválido (Ej: 1-2345-6789)');
+                return;
+            }
+            
             try {
-                const res = await fetch('/api/asambleistas/guardar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id_asambleista: id || null, cedula, nombre, correo_institucional: correo }) });
-                const data = await res.json();
-                if(data.success) { showSuccess(data.message); if(!id) window.location.href = '/asambleistas'; else cancelarEdicion(); }
-                else { showError(data.message); }
-            } catch(e) { showError('Error de conexión'); }
+                let url, method;
+                
+                if (id) {
+                    // MODO EDICIÓN - Usar PUT con ID en URL
+                    url = `/api/asambleistas/editar/${id}`;
+                    method = 'POST';
+                } else {
+                    // MODO REGISTRO
+                    url = '/api/asambleistas/guardar';
+                    method = 'POST';
+                }
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        cedula, 
+                        nombre, 
+                        correo_institucional: correo 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(data.message);
+                    if (!id) {
+                        // Si fue registro, redirigir al listado
+                        setTimeout(() => {
+                            window.location.href = '/asambleistas';
+                        }, 1500);
+                    } else {
+                        // Si fue edición, recargar los datos
+                        cancelarEdicion();
+                    }
+                } else {
+                    showError(data.message || 'Error al guardar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión con el servidor');
+            }
         }
 
+        // =====================================================
+        // AGREGAR NOMBRAMIENTO
+        // =====================================================
         async function agregarNombramiento() {
             const asambleistaId = document.getElementById('asambleista_id').value;
             const sector_id = document.getElementById('nombramiento_sector').value;
             const id_puesto = document.getElementById('nombramiento_puesto').value;
             const fecha_inicio = document.getElementById('nombramiento_fecha_inicio').value;
             const fecha_fin = document.getElementById('nombramiento_fecha_fin').value || null;
-            if(!sector_id || !id_puesto || !fecha_inicio) { showError('Complete sector, puesto y fecha de inicio'); return; }
+            
+            if (!asambleistaId) {
+                showError('Primero debe guardar el asambleísta');
+                return;
+            }
+            
+            if (!sector_id || !id_puesto || !fecha_inicio) {
+                showError('Complete sector, puesto y fecha de inicio');
+                return;
+            }
+            
             try {
-                const res = await fetch('/api/nombramientos/registrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ asambleista_id: parseInt(asambleistaId), sector_id: parseInt(sector_id), id_puesto: parseInt(id_puesto), fecha_inicio, fecha_fin }) });
-                const data = await res.json();
-                if(data.success) { showSuccess('Nombramiento agregado'); document.getElementById('nombramiento_sector').value = ''; document.getElementById('nombramiento_puesto').value = ''; document.getElementById('nombramiento_fecha_inicio').value = ''; document.getElementById('nombramiento_fecha_fin').value = ''; cargarNombramientos(asambleistaId); }
-                else { showError(data.message); }
-            } catch(e) { showError('Error de conexión'); }
+                const response = await fetch('/api/nombramientos/registrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        asambleista_id: parseInt(asambleistaId),
+                        sector_id: parseInt(sector_id),
+                        id_puesto: parseInt(id_puesto),
+                        fecha_inicio: fecha_inicio,
+                        fecha_fin: fecha_fin
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Nombramiento agregado correctamente');
+                    // Limpiar formulario
+                    document.getElementById('nombramiento_sector').value = '';
+                    document.getElementById('nombramiento_puesto').value = '';
+                    document.getElementById('nombramiento_fecha_inicio').value = '';
+                    document.getElementById('nombramiento_fecha_fin').value = '';
+                    // Recargar lista
+                    cargarNombramientos(asambleistaId);
+                } else {
+                    showError(data.message || 'Error al agregar nombramiento');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión');
+            }
         }
 
-        function cancelarEdicion() { window.location.href = '/asambleistas'; }
+        // =====================================================
+        // CANCELAR EDICIÓN
+        // =====================================================
+        function cancelarEdicion() {
+            window.location.href = '/asambleistas';
+        }
 
-        loadSharedComponents(); cargarSectores(); cargarPuestos();
-        let idEditar = obtenerIdDeURL();
-        if(idEditar) cargarAsambleistaParaEdicion(parseInt(idEditar));
+        // =====================================================
+        // INICIALIZAR
+        // =====================================================
+        async function init() {
+            loadSharedComponents();
+            await cargarSectores();
+            await cargarPuestos();
+            
+            const idEditar = obtenerIdDeURL();
+            if (idEditar) {
+                await cargarAsambleistaParaEdicion(parseInt(idEditar));
+            }
+        }
+        
+        init();
     </script>
 </body>
 </html>
