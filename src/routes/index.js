@@ -214,7 +214,46 @@ router.get('/api/bitacora', async (req, res) => {
 // =====================================================
 router.get('/api/normativa/reglamentos', normativaController.getReglamentos.bind(normativaController));
 router.get('/api/normativa/arbol', normativaController.getArbol.bind(normativaController));
-router.get('/api/normativa/articulo/:id', normativaController.getArticulo.bind(normativaController));
+router.get('/api/normativa/articulo/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    
+    try {
+        const result = await db.query(`
+            SELECT 
+                e.id_elemento,
+                e.numero_etiqueta,
+                e.contenido_texto,
+                e.fecha_inicio_vigencia,
+                e.fecha_fin_vigencia,
+                COALESCE(ev.nombre, 'Vigente') as estado
+            FROM elemento_normativo e
+            LEFT JOIN catalogo_estado_vigencia ev ON e.id_estado_vigencia = ev.id_estado_vigencia
+            WHERE e.id_elemento = $1
+        `, [id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Artículo no encontrado' });
+        }
+        
+        const data = result.rows[0];
+        
+        res.json({ 
+            success: true, 
+            data: {
+                id: data.id_elemento,
+                numero: data.numero_etiqueta,
+                contenido: data.contenido_texto || 'Contenido no disponible',
+                vigencia_inicio: data.fecha_inicio_vigencia,
+                vigencia_fin: data.fecha_fin_vigencia,
+                estado: data.estado
+            }
+        });
+    } catch (error) {
+        console.error('Error en articulo:', error);
+        res.status(500).json({ success: false, message: 'Error al cargar el artículo' });
+    }
+});
 router.get('/api/normativa/compilado/:id', normativaController.getCompilado.bind(normativaController));
 
 module.exports = router;
