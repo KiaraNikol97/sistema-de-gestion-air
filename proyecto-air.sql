@@ -648,9 +648,9 @@ SELECT setval(pg_get_serial_sequence('elemento_normativo', 'id_elemento'), COALE
 SELECT setval(pg_get_serial_sequence('nombramiento', 'id_nombramiento'), COALESCE(MAX(id_nombramiento), 1)) FROM nombramiento;
 SELECT setval(pg_get_serial_sequence('reforma_aplicada', 'id_reforma'), COALESCE(MAX(id_reforma), 1)) FROM reforma_aplicada;
 
--- =====================================================
--- 9. CONSULTAS DE VERIFICACIÓN PARA LA RÚBRICA
--- =====================================================
+-- ===============================
+-- 9. CONSULTAS DE VERIFICACIÓN
+-- ===============================
 
 -- Verificación de catálogos y seguridad.
 SELECT * FROM catalogo_sector;
