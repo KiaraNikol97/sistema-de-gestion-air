@@ -1,31 +1,27 @@
-const jwt = require('jsonwebtoken');
 
-const authorize = (rolesPermitidos = []) => {
+
+// Middleware para verificar que el usuario está autenticado
+function verificarAutenticacion(req, res, next) {
+    if (req.session.userId) {
+        next();
+    } else {
+        res.status(401).json({ success: false, message: 'No autorizado. Inicie sesión primero.' });
+    }
+}
+
+// Middleware para verificar roles específicos
+function verificarRol(rolesPermitidos) {
     return (req, res, next) => {
-        // Obtener el token del encabezado Authorization
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-
-        if (!token) {
-            return res.status(403).json({ message: "Acceso denegado: No se proporcionó token" });
+        if (!req.session.userId) {
+            return res.status(401).json({ success: false, message: 'No autenticado' });
         }
-
-        jwt.verify(token, process.env.JWT_SECRET || 'secret_key_air', (err, decoded) => {
-            if (err) {
-                return res.status(401).json({ message: "Token inválido o expirado" });
-            }
-
-            // Verificar si el usuario tiene el rol necesario
-            const tieneRol = decoded.roles.some(rol => rolesPermitidos.includes(rol));
-            
-            if (rolesPermitidos.length && !tieneRol) {
-                return res.status(403).json({ message: "No tienes permiso para realizar esta acción" });
-            }
-
-            req.user = decoded;
+        
+        if (rolesPermitidos.includes(req.session.rol)) {
             next();
-        });
+        } else {
+            res.status(403).json({ success: false, message: 'Acceso denegado. No tiene permisos suficientes.' });
+        }
     };
-};
+}
 
-module.exports = authorize;
+module.exports = { verificarAutenticacion, verificarRol };
