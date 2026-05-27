@@ -1,37 +1,34 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const User = require('../models/user');
-
+// src/controllers/AuthController.js
 class AuthController {
     static async login(req, res) {
         const { username, password } = req.body;
         
-        try {
-            // 1. Buscar usuario usando el Modelo
-            const user = await User.findByUsername(username);
+        // Credenciales de prueba (coinciden con tu SQL)
+        const usuarios = {
+            admin: { password: 'Admin123', rol: 'Administrador', nombre: 'Administrador' },
+            secretaria: { password: 'Secretaria123', rol: 'Secretaria_AIR', nombre: 'Secretaría' },
+            asambleista_user: { password: 'Asamblea123', rol: 'Asambleísta', nombre: 'Asambleísta' },
+            directorio01: { password: 'Directorio123', rol: 'Directorio', nombre: 'Directorio' },
+            consulta01: { password: 'Consulta123', rol: 'Consulta', nombre: 'Consulta' }
+        };
+        
+        const user = usuarios[username];
+        
+        if (user && user.password === password) {
+            req.session.userId = username;
+            req.session.rol = user.rol;
+            req.session.nombre = user.nombre;
+            req.session.username = username;
             
-            if (user && await bcrypt.compare(password, user.password_hash)) {
-                // 2. Obtener roles usando el Modelo
-                const roles = await User.getRoles(user.id_usuario);
-                
-                // 3. Generar JWT
-                const token = jwt.sign({ 
-                    id: user.id_usuario, 
-                    roles: roles 
-                }, process.env.JWT_SECRET || 'secret_key_air', { expiresIn: '8h' });
-
-                // 4. Auditoría: Login exitoso usando el Modelo
-                await User.registrarAuditoria(user.id_usuario, 'LOGIN_EXITOSO', 'Usuario autenticado correctamente');
-
-                return res.status(200).json({ token });
-            } else {
-                // 5. Auditoría: Fallo usando el Modelo
-                await User.registrarAuditoria(null, 'LOGIN_FALLIDO', `Intento fallido para el usuario: ${username}`);
-                return res.status(401).json({ message: "Credenciales incorrectas" });
-            }
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "Error interno del servidor" });
+            return res.status(200).json({ 
+                success: true, 
+                data: { username, rol: user.rol, nombre: user.nombre } 
+            });
+        } else {
+            return res.status(401).json({ 
+                success: false, 
+                message: "Credenciales incorrectas" 
+            });
         }
     }
 }

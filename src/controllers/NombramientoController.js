@@ -1,250 +1,110 @@
-const Nombramiento = require('../models/Nombramiento');
+// src/controllers/NombramientoController.js
+const db = require('../config/db');
 
-/**
- * Controlador para gestionar nombramientos de asambleístas
- * Issue #14 - Historial de Nombramientos
- */
-
-// Registrar un nuevo nombramiento
-exports.registrarNombramiento = async (req, res) => {
+// Obtener historial de nombramientos
+async function getHistorialAsambleista(req, res) {
     try {
-        const {
-            asambleista_id,
-            sector_id,
-            id_puesto,
-            resolucion_id,
-            fecha_inicio,
-            fecha_fin,
-            observaciones
-        } = req.body;
+        const { asambleista_id } = req.params;
         
-        const id_usuario_registro = req.user?.id_usuario || 1; // Temporal: usar de sesión real
+        const result = await db.query(`
+            SELECT 
+                n.id_nombramiento,
+                s.nombre as sector,
+                p.nombre_puesto as puesto,
+                n.fecha_inicio,
+                n.fecha_fin,
+                n.estado,
+                CASE 
+                    WHEN n.fecha_fin IS NULL AND n.estado = 'Activo' THEN 'Vigente'
+                    WHEN n.fecha_fin < CURRENT_DATE THEN 'Vencido'
+                    ELSE n.estado
+                END as estado_real
+            FROM nombramiento n
+            JOIN catalogo_sector s ON n.id_sector = s.id_sector
+            JOIN catalogo_puestos p ON n.id_puesto = p.id_puesto
+            WHERE n.id_asambleista = $1
+            ORDER BY n.fecha_inicio DESC
+        `, [asambleista_id]);
         
-        // Validar campos obligatorios
-        if (!asambleista_id || !sector_id || !id_puesto || !fecha_inicio) {
-            return res.status(400).json({
-                success: false,
-                message: 'Faltan campos obligatorios: asambleista_id, sector_id, id_puesto, fecha_inicio'
-            });
-        }
-        
-        // Validar traslape de fechas
-        const noHayTraslape = await Nombramiento.validarTraslape(
-            asambleista_id,
-            id_puesto,
-            fecha_inicio,
-            fecha_fin
-        );
-        
-        if (!noHayTraslape) {
-            return res.status(409).json({
-                success: false,
-                message: 'El asambleísta ya tiene un nombramiento activo para este puesto en el período indicado'
-            });
-        }
-        
-        const id_nombramiento = await Nombramiento.create({
-            asambleista_id,
-            sector_id,
-            id_puesto,
-            resolucion_id,
-            fecha_inicio,
-            fecha_fin,
-            id_usuario_registro,
-            observaciones
-        });
-        
-        res.status(201).json({
-            success: true,
-            message: 'Nombramiento registrado exitosamente',
-            data: { id_nombramiento }
-        });
-        
+        res.json({ success: true, data: result.rows });
     } catch (error) {
-        console.error('Error en registrarNombramiento:', error);
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener historial' });
+    }
+}
+
+// Obtener sector vigente
+async function getSectorVigente(req, res) {
+    try {
+        const { asambleista_id } = req.params;
         
-        if (error.message.includes('nombramiento activo')) {
-            return res.status(409).json({
-                success: false,
-                message: error.message
-            });
+        const result = await db.query(`
+            SELECT 
+                s.nombre as sector,
+                p.nombre_puesto as puesto,
+                n.fecha_inicio as desde,
+                n.fecha_fin as hasta
+            FROM nombramiento n
+            JOIN catalogo_sector s ON n.id_sector = s.id_sector
+            JOIN catalogo_puestos p ON n.id_puesto = p.id_puesto
+            WHERE n.id_asambleista = $1 
+              AND n.estado = 'Activo' 
+              AND (n.fecha_fin IS NULL OR n.fecha_fin >= CURRENT_DATE)
+            LIMIT 1
+        `, [asambleista_id]);
+        
+        if (result.rows.length === 0) {
+            return res.json({ success: false, data: null });
         }
         
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al registrar nombramiento'
-        });
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener sector vigente' });
     }
-};
+}
 
-// Finalizar un nombramiento (dar de baja)
-exports.finalizarNombramiento = async (req, res) => {
+// Registrar nombramiento
+async function registrarNombramiento(req, res) {
+    try {
+        const { asambleista_id, sector_id, id_puesto, fecha_inicio, fecha_fin, observaciones } = req.body;
+        
+        const result = await db.query(`
+            INSERT INTO nombramiento 
+            (id_asambleista, id_sector, id_puesto, fecha_inicio, fecha_fin, observaciones, estado, id_usuario_registro)
+            VALUES ($1, $2, $3, $4, $5, $6, 'Activo', 1)
+            RETURNING id_nombramiento
+        `, [asambleista_id, sector_id, id_puesto, fecha_inicio, fecha_fin || null, observaciones || null]);
+        
+        res.json({ success: true, message: 'Nombramiento registrado', id: result.rows[0].id_nombramiento });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al registrar nombramiento' });
+    }
+}
+
+// Finalizar nombramiento
+async function finalizarNombramiento(req, res) {
     try {
         const { id } = req.params;
-        const { fecha_fin, observacion } = req.body;
-        const id_usuario = req.user?.id_usuario || 1;
+        const { fecha_fin } = req.body;
         
-        if (!fecha_fin) {
-            return res.status(400).json({
-                success: false,
-                message: 'La fecha de finalización es obligatoria'
-            });
-        }
+        await db.query(`
+            UPDATE nombramiento 
+            SET fecha_fin = $1, estado = 'Finalizado'
+            WHERE id_nombramiento = $2
+        `, [fecha_fin, id]);
         
-        await Nombramiento.finalizar(id, fecha_fin, id_usuario, observacion || 'Finalizado por usuario');
-        
-        res.json({
-            success: true,
-            message: 'Nombramiento finalizado exitosamente'
-        });
-        
+        res.json({ success: true, message: 'Nombramiento finalizado' });
     } catch (error) {
-        console.error('Error en finalizarNombramiento:', error);
-        
-        if (error.message.includes('No se encontró')) {
-            return res.status(404).json({
-                success: false,
-                message: error.message
-            });
-        }
-        
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al finalizar nombramiento'
-        });
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al finalizar nombramiento' });
     }
-};
+}
 
-// Obtener historial de nombramientos de un asambleísta
-exports.getHistorialAsambleista = async (req, res) => {
-    try {
-        const { asambleista_id } = req.params;
-        
-        if (!asambleista_id) {
-            return res.status(400).json({
-                success: false,
-                message: 'El ID del asambleísta es requerido'
-            });
-        }
-        
-        const historial = await Nombramiento.getHistorialByAsambleistaId(asambleista_id);
-        
-        res.json({
-            success: true,
-            data: historial,
-            total: historial.length
-        });
-        
-    } catch (error) {
-        console.error('Error en getHistorialAsambleista:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al obtener historial'
-        });
-    }
-};
-
-// Obtener el sector vigente actual de un asambleísta
-exports.getSectorVigente = async (req, res) => {
-    try {
-        const { asambleista_id } = req.params;
-        
-        const vigente = await Nombramiento.getVigenteByAsambleistaId(asambleista_id);
-        
-        if (!vigente) {
-            return res.json({
-                success: true,
-                data: null,
-                message: 'El asambleísta no tiene un nombramiento vigente actualmente'
-            });
-        }
-        
-        res.json({
-            success: true,
-            data: {
-                sector: vigente.sector,
-                puesto: vigente.puesto,
-                desde: vigente.fecha_inicio,
-                hasta: vigente.fecha_fin || 'Indefinido'
-            }
-        });
-        
-    } catch (error) {
-        console.error('Error en getSectorVigente:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al obtener sector vigente'
-        });
-    }
-};
-
-// Listar todos los nombramientos (con filtros)
-exports.listarNombramientos = async (req, res) => {
-    try {
-        const { estado, sector_id } = req.query;
-        
-        const nombramientos = await Nombramiento.getAll({ estado, sector_id });
-        
-        res.json({
-            success: true,
-            data: nombramientos,
-            total: nombramientos.length,
-            filtros: { estado, sector_id: sector_id || null }
-        });
-        
-    } catch (error) {
-        console.error('Error en listarNombramientos:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al listar nombramientos'
-        });
-    }
-};
-
-// Obtener reporte de nombramientos por sector
-exports.getReportePorSector = async (req, res) => {
-    try {
-        const reporte = await Nombramiento.getReportePorSector();
-        
-        res.json({
-            success: true,
-            data: reporte
-        });
-        
-    } catch (error) {
-        console.error('Error en getReportePorSector:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al generar reporte'
-        });
-    }
-};
-
-// Endpoint para funcionamiento de los archivos html (views)
-
-// Validar traslape de fechas (para uso desde el frontend)
-exports.validarTraslapeAPI = async (req, res) => {
-    try {
-        const { asambleista_id, id_puesto, fecha_inicio, fecha_fin } = req.body;
-        
-        const esValido = await Nombramiento.validarTraslape(
-            asambleista_id,
-            id_puesto,
-            fecha_inicio,
-            fecha_fin
-        );
-        
-        res.json({
-            success: true,
-            data: { es_valido: esValido },
-            message: esValido ? 'Período válido' : 'Existe traslape con otro nombramiento activo'
-        });
-        
-    } catch (error) {
-        console.error('Error en validarTraslapeAPI:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al validar traslape'
-        });
-    }
+module.exports = {
+    getHistorialAsambleista,
+    getSectorVigente,
+    registrarNombramiento,
+    finalizarNombramiento
 };

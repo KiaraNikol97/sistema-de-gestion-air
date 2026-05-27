@@ -1,199 +1,119 @@
-// :::::::::::::::::::::::::::::::::::::::::::::::::
-// ISSUE #9 - Catálogo de Asambleístas
-// Autora: María Fernanda Vargas Guzmán
-// Sprint 2 - Semana 2 
-// Controller MVC
-// :::::::::::::::::::::::::::::::::::::::::::::::::
-
-// Conectarse
-const AsambleistaModel = require('../models/AsambleistaModels');
+// src/controllers/AsambleistaControllers.js
+const db = require('../config/db');
 
 // Mostrar listado de asambleístas
 async function mostrarAsambleistas(req, res) {
-
     try {
-
-        const asambleistas = await AsambleistaModel.listarAsambleistas();
-
-        res.render("asambleistas", {
-            asambleistas: asambleistas,
-            mensaje: null,
-            error: null
-        });
-
+        const result = await db.query(`
+            SELECT id_asambleista, cedula, nombre, correo_institucional 
+            FROM asambleista 
+            ORDER BY nombre
+        `);
+        res.json({ success: true, data: result.rows });
     } catch (error) {
-
-        res.render("asambleistas", {
-            asambleistas: [],
-            mensaje: null,
-            error: "Error al mostrar los asambleístas."
-        });
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al mostrar asambleístas' });
     }
 }
 
 // Registrar nuevo asambleísta
 async function registrarAsambleista(req, res) {
-
     try {
-
-        const cedula = req.body.cedula;
-        const nombre = req.body.nombre;
-        const correo = req.body.correo;
-
-        // Validar campos obligatorios
+        const { cedula, nombre, correo_institucional } = req.body;
+        
         if (!cedula || !nombre) {
-
-            return res.send("La cédula y el nombre son obligatorios.");
+            return res.status(400).json({ success: false, message: 'Cédula y nombre son obligatorios' });
         }
-
-        // Validar formato de cédula
+        
         const formatoCedula = /^[0-9]-[0-9]{4}-[0-9]{4}$/;
-
         if (!formatoCedula.test(cedula)) {
-
-            return res.send("La cédula debe tener el formato 0-0000-0000.");
+            return res.status(400).json({ success: false, message: 'Formato de cédula inválido' });
         }
-
-        // Validar cédula duplicada
-        const existeCedula = await AsambleistaModel.buscarPorCedula(cedula);
-
-        if (existeCedula) {
-
-            return res.send("Ya existe un asambleísta registrado con esa cédula.");
+        
+        const existe = await db.query('SELECT id_asambleista FROM asambleista WHERE cedula = $1', [cedula]);
+        if (existe.rows.length > 0) {
+            return res.status(409).json({ success: false, message: 'Ya existe un asambleísta con esa cédula' });
         }
-
-        // Crear asambleísta
-        await AsambleistaModel.crearAsambleista(
-            cedula,
-            nombre,
-            correo
+        
+        await db.query(
+            'INSERT INTO asambleista (cedula, nombre, correo_institucional) VALUES ($1, $2, $3)',
+            [cedula, nombre, correo_institucional || null]
         );
-
-        res.redirect("/asambleistas");
-
+        
+        res.json({ success: true, message: 'Asambleísta registrado exitosamente' });
     } catch (error) {
-
-        res.send("Error al registrar el asambleísta.");
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al registrar asambleísta' });
     }
 }
-
 
 // Buscar asambleístas
 async function buscarAsambleistas(req, res) {
-
     try {
-
-        const textoBusqueda = req.query.buscar;
-
-        let asambleistas;
-
-        if (!textoBusqueda) {
-
-            asambleistas = await AsambleistaModel.listarAsambleistas();
-
-        } else {
-
-            asambleistas = await AsambleistaModel.buscarAsambleistas(textoBusqueda);
+        const { buscar, q } = req.query;
+        const termino = buscar || q;
+        
+        if (!termino) {
+            return mostrarAsambleistas(req, res);
         }
-
-        res.render("asambleistas", {
-            asambleistas: asambleistas,
-            mensaje: null,
-            error: null
-        });
-
+        
+        const result = await db.query(`
+            SELECT id_asambleista, cedula, nombre, correo_institucional 
+            FROM asambleista 
+            WHERE nombre ILIKE $1 OR cedula ILIKE $1
+            ORDER BY nombre
+        `, [`%${termino}%`]);
+        
+        res.json({ success: true, data: result.rows });
     } catch (error) {
-
-        res.send("Error al buscar asambleístas.");
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al buscar asambleístas' });
     }
 }
 
+// Obtener asambleísta por ID
+async function obtenerAsambleistaPorId(req, res) {
+    try {
+        const { id } = req.params;
+        const result = await db.query(`
+            SELECT id_asambleista, cedula, nombre, correo_institucional 
+            FROM asambleista 
+            WHERE id_asambleista = $1
+        `, [id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Asambleísta no encontrado' });
+        }
+        
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener asambleísta' });
+    }
+}
 
 // Editar asambleísta
 async function editarAsambleista(req, res) {
-
     try {
-
-        const id_asambleista = req.params.id;
-
-        const cedula = req.body.cedula;
-        const nombre = req.body.nombre;
-        const correo = req.body.correo;
-
-        // Validar campos obligatorios
-        if (!cedula || !nombre) {
-
-            return res.send("La cédula y el nombre son obligatorios.");
-        }
-
-        // Validar formato de cédula
-        const formatoCedula = /^[0-9]-[0-9]{4}-[0-9]{4}$/;
-
-        if (!formatoCedula.test(cedula)) {
-
-            return res.send("Formato de cédula inválido.");
-        }
-
-        // Editar asambleísta
-        await AsambleistaModel.editarAsambleista(
-            id_asambleista,
-            cedula,
-            nombre,
-            correo
+        const { id } = req.params;
+        const { cedula, nombre, correo_institucional } = req.body;
+        
+        await db.query(
+            'UPDATE asambleista SET cedula = $1, nombre = $2, correo_institucional = $3 WHERE id_asambleista = $4',
+            [cedula, nombre, correo_institucional, id]
         );
-
-        res.redirect("/asambleistas");
-
+        
+        res.json({ success: true, message: 'Asambleísta actualizado' });
     } catch (error) {
-
-        res.send("Error al editar el asambleísta.");
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al editar asambleísta' });
     }
 }
-
-
-// Eliminar asambleísta
-async function eliminarAsambleista(req, res) {
-
-    try {
-
-        const id_asambleista = req.params.id;
-
-        await AsambleistaModel.eliminarAsambleista(id_asambleista);
-
-        res.redirect("/asambleistas");
-
-    } catch (error) {
-
-        res.send("Error al eliminar el asambleísta.");
-    }
-}
-
-
-// Mostrar bitácora de cambios
-async function mostrarBitacora(req, res) {
-
-    try {
-
-        const id_asambleista = req.params.id;
-
-        const bitacora = await AsambleistaModel.obtenerBitacoraAsambleista(id_asambleista);
-
-        res.render("bitacoraAsambleista", {
-            bitacora: bitacora
-        });
-
-    } catch (error) {
-
-        res.send("Error al mostrar la bitácora.");
-    }
-}
-
 
 module.exports = {
     mostrarAsambleistas,
     registrarAsambleista,
     buscarAsambleistas,
-    editarAsambleista,
-    eliminarAsambleista,
-    mostrarBitacora
+    obtenerAsambleistaPorId,
+    editarAsambleista
 };

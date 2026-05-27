@@ -1,205 +1,130 @@
 // src/controllers/NormativaController.js
-// Descripción: Controlador para normativa (reglas de jerarquía)
-
-const NormativaModel = require('../models/NormativaModel');
+const db = require('../config/db');
 
 class NormativaController {
-    constructor() {
-        this.model = new NormativaModel();  
-    }
     
-    // Mostrar página principal del compilador
-    async mostrarCompilador(req, res) {
+    // Obtener lista de reglamentos
+    async getReglamentos(req, res) {
         try {
-            const reglamentos = await this.model.getAllReglamentos();
-            res.render('normativa/arbol.view.html', { 
-                reglamentos,
-                arbol: [],
-                mensaje: null
-            });
+            const result = await db.query('SELECT id_reglamento, nombre_normativa, sigla FROM reglamento WHERE activo = TRUE');
+            res.json({ success: true, data: result.rows });
         } catch (error) {
-            console.error(error);
-            res.status(500).render('error', { mensaje: 'Error al cargar reglamentos' });
+            console.error('Error:', error);
+            res.status(500).json({ success: false, message: 'Error al cargar reglamentos' });
         }
     }
     
-    // Obtener árbol de un reglamento (API para AJAX)
+    // Obtener árbol de normativa
     async getArbol(req, res) {
         try {
-            const id_reglamento = req.params.id;
-            const arbol = await this.model.getArbolReglamento(id_reglamento);
+            const result = await db.query(`
+                SELECT e.id_elemento as id, e.numero_etiqueta as numero, 
+                       e.contenido_texto as titulo, e.id_elemento_padre as padre,
+                       ev.nombre as estado
+                FROM elemento_normativo e
+                JOIN catalogo_estado_vigencia ev ON e.id_estado_vigencia = ev.id_estado_vigencia
+                WHERE ev.nombre = 'Vigente'
+                ORDER BY e.orden
+            `);
+            
+            function buildTree(items, parentId = null) {
+                const result = [];
+                for (const item of items) {
+                    if ((item.padre === parentId) || (parentId === null && item.padre === null)) {
+                        result.push({
+                            id: item.id,
+                            numero: item.numero,
+                            titulo: item.titulo?.substring(0, 100) || '',
+                            resumen: item.titulo?.substring(0, 80) + '...' || '',
+                            estado: item.estado,
+                            hijos: buildTree(items, item.id)
+                        });
+                    }
+                }
+                return result;
+            }
+            
+            const arbol = buildTree(result.rows);
             res.json({ success: true, data: arbol });
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ success: false, error: error.message });
+            console.error('Error:', error);
+            res.status(500).json({ success: false, message: 'Error al cargar árbol' });
         }
     }
     
-    // Mostrar formulario de creación
-    async mostrarFormularioCreacion(req, res) {
+    // Obtener artículo por ID
+    async getArticulo(req, res) {
         try {
-            const reglamentos = await this.model.getAllReglamentos();
-            const niveles = await this.model.getNiveles();
+            const { id } = req.params;
+            const result = await db.query(`
+                SELECT e.id_elemento, e.numero_etiqueta, e.contenido_texto,
+                       e.fecha_inicio_vigencia, e.fecha_fin_vigencia, ev.nombre as estado
+                FROM elemento_normativo e
+                JOIN catalogo_estado_vigencia ev ON e.id_estado_vigencia = ev.id_estado_vigencia
+                WHERE e.id_elemento = $1
+            `, [id]);
             
-            // Obtener elementos disponibles para ser padre (opcional)
-            const [elementos] = await pool.query(
-                'SELECT id_elemento, numero_etiqueta, contenido_texto FROM elemento_normativo WHERE fecha_fin_vigencia IS NULL LIMIT 100'
+            if (result.rows.length === 0) {
+                return res.status(404).json({ success: false, message: 'No encontrado' });
+            }
+            
+            res.json({ success: true, data: result.rows[0] });
+        } catch (error) {
+            console.error('Error:', error);
+            res.status(500).json({ success: false, message: 'Error al cargar artículo' });
+        }
+    }
+    
+    // Obtener compilado histórico
+    async getCompilado(req, res) {
+        const { id } = req.params;
+        const { fecha } = req.query;
+        
+        let fechaConsulta = fecha ? new Date(fecha) : new Date();
+        const hoy = new Date();
+        if (fechaConsulta > hoy) fechaConsulta = hoy;
+        const fechaStr = fechaConsulta.toISOString().split('T')[0];
+        
+        try {
+            const reglamentoResult = await db.query(
+                'SELECT id_reglamento, nombre_normativa, sigla FROM reglamento WHERE id_reglamento = $1 AND activo = TRUE',
+                [id]
             );
             
-            res.render('normativa/editar.view.html', { 
-                reglamentos, 
-                niveles,
-                elementos,
-                modo: 'crear',
-                datos: null,
-                errores: null
-            });
-        } catch (error) {
-            console.error(error);
-            res.status(500).render('error', { mensaje: 'Error al cargar formulario' });
-        }
-    }
-    
-    // Crear nuevo elemento (con reglas de jerarquía)
-    async crearElemento(req, res) {
-        try {
-            const datos = req.body;
-            const id_usuario = req.session?.usuario?.id_usuario || 1; // Temporal
+            if (reglamentoResult.rows.length === 0) {
+                return res.status(404).json({ success: false, message: 'Reglamento no encontrado' });
+            }
             
-            // REGLA DE JERARQUÍA: Validar nivel contra el padre
-            if (datos.id_elemento_padre && datos.id_elemento_padre !== '') {
-                const padre = await this.model.getElementByIdoById(datos.id_elemento_padre);
-                
-                if (!padre) {
-                    throw new Error('El elemento padre no existe');
+            const elementosResult = await db.query(`
+                SELECT 
+                    e.id_elemento,
+                    e.numero_etiqueta,
+                    e.contenido_texto,
+                    e.fecha_inicio_vigencia,
+                    e.fecha_fin_vigencia
+                FROM elemento_normativo e
+                WHERE e.id_reglamento = $1
+                  AND e.fecha_inicio_vigencia <= $2
+                  AND (e.fecha_fin_vigencia IS NULL OR e.fecha_fin_vigencia > $2)
+                ORDER BY e.orden
+            `, [id, fechaStr]);
+            
+            const esVersionHistorica = fechaConsulta < new Date();
+            
+            res.json({
+                success: true,
+                data: {
+                    reglamento: reglamentoResult.rows[0],
+                    fecha_consulta: fechaStr,
+                    es_version_historica: esVersionHistorica,
+                    total_articulos: elementosResult.rows.length,
+                    articulos: elementosResult.rows
                 }
-                
-                const nivelPadre = padre.id_nivel_reglamento;
-                const nivelHijo = parseInt(datos.id_nivel_reglamento);
-                
-                // Un hijo debe tener nivel MAYOR que su padre (más específico)
-                if (nivelHijo <= nivelPadre) {
-                    throw new Error(`No se puede insertar un "${await this.getNombreNivel(nivelHijo)}" dentro de un "${padre.nivel_nombre}". El nivel debe ser inferior.`);
-                }
-            }
-            
-            // Validar que no exista otra versión vigente del mismo elemento
-            const id_elemento_padre = datos.id_elemento_padre || null;
-            const existeVigente = await this.model.existeVersionVigente(
-                datos.id_reglamento,
-                datos.numero_etiqueta,
-                id_elemento_padre
-            );
-            
-            if (existeVigente && !datos.es_nueva_version) {
-                throw new Error(`Ya existe una versión vigente del elemento ${datos.numero_etiqueta}. Use "Publicar nueva versión" para modificarlo.`);
-            }
-            
-            // Crear elemento
-            const nuevoId = await this.model.crearElemento({
-                ...datos,
-                id_usuario_registro: id_usuario,
-                fecha_inicio_vigencia: datos.fecha_inicio_vigencia || new Date().toISOString().split('T')[0]
-            });
-            
-            req.session.mensaje = { tipo: 'success', texto: 'Elemento creado con éxito' };
-            res.redirect(`/normativa/elemento/${nuevoId}`);
-            
-        } catch (error) {
-            console.error(error);
-            const reglamentos = await this.model.getAllReglamentos();
-            const niveles = await this.model.getNiveles();
-            res.status(400).render('normativa/editar.view.html', { 
-                reglamentos, 
-                niveles,
-                modo: 'crear',
-                datos: req.body,
-                errores: [error.message]
-            });
-        }
-    }
-    
-    // Mostrar formulario de edición
-    async mostrarFormularioEdicion(req, res) {
-        try {
-            const id_elemento = req.params.id;
-            const elemento = await this.model.getElementByIdoById(id_elemento);
-            
-            if (!elemento) {
-                throw new Error('Elemento no encontrado');
-            }
-            
-            const reglamentos = await this.model.getAllReglamentos();
-            const niveles = await this.model.getNiveles();
-            
-            res.render('normativa/editar.view.html', { 
-                reglamentos, 
-                niveles,
-                modo: 'editar',
-                datos: elemento,
-                errores: null
             });
         } catch (error) {
-            console.error(error);
-            res.status(404).render('error', { mensaje: error.message });
+            console.error('Error:', error);
+            res.status(500).json({ success: false, message: 'Error al cargar compilado' });
         }
-    }
-    
-    // Publicar nueva versión
-    async publicarNuevaVersion(req, res) {
-        try {
-            const { id_elemento, nuevo_texto, justificacion } = req.body;
-            const id_usuario = req.session?.usuario?.id_usuario || 1;
-            const fecha_inicio = new Date().toISOString().split('T')[0];
-            
-            const nuevoId = await this.model.publicarNuevaVersion(
-                id_elemento, 
-                nuevo_texto, 
-                fecha_inicio, 
-                id_usuario
-            );
-            
-            req.session.mensaje = { 
-                tipo: 'success', 
-                texto: 'Nueva versión publicada correctamente. La versión anterior quedó como "Histórica".' 
-            };
-            res.redirect(`/normativa/elemento/${nuevoId}`);
-            
-        } catch (error) {
-            console.error(error);
-            res.status(400).json({ success: false, error: error.message });
-        }
-    }
-    
-    // Eliminar elemento
-    async eliminarElemento(req, res) {
-        try {
-            const id_elemento = req.params.id;
-            
-            // Verificar si tiene hijos
-            const tieneHijos = await this.model.tieneHijos(id_elemento);
-            if (tieneHijos) {
-                throw new Error('No se puede eliminar un elemento que tiene elementos hijos');
-            }
-            
-            await this.model.eliminarElemento(id_elemento);
-            
-            req.session.mensaje = { tipo: 'success', texto: 'Elemento eliminado con éxito' };
-            res.json({ success: true });
-            
-        } catch (error) {
-            console.error(error);
-            res.status(400).json({ success: false, error: error.message });
-        }
-    }
-    
-    // Helper: obtener nombre del nivel por ID
-    async getNombreNivel(id_nivel) {
-        const [rows] = await pool.query(
-            'SELECT nombre FROM catalogo_nivel_reglamento WHERE id_nivel_reglamento = ?',
-            [id_nivel]
-        );
-        return rows[0]?.nombre || 'Nivel desconocido';
     }
 }
 
