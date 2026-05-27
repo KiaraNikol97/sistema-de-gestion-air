@@ -32,6 +32,7 @@ router.get('/api/asambleistas', asambleistaController.mostrarAsambleistas);
 router.post('/api/asambleistas/guardar', asambleistaController.registrarAsambleista);
 router.get('/api/asambleistas/buscar', asambleistaController.buscarAsambleistas);
 router.get('/api/asambleistas/:id', asambleistaController.obtenerAsambleistaPorId);
+router.post('/api/asambleistas/editar/:id', asambleistaController.editarAsambleista);
 
 // =====================================================
 // RUTAS DE NOMBRAMIENTOS
