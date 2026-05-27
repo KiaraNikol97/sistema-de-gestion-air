@@ -15,7 +15,8 @@
         .visor-content { padding: 40px 50px; font-family: 'Georgia', 'Times New Roman', serif; line-height: 1.6; color: #2d3748; min-height: 500px; }
         .visor-content h1 { font-size: 1.8rem; color: #1e3c72; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; }
         .visor-content .articulo { margin-bottom: 20px; padding-left: 15px; border-left: 3px solid #cbd5e0; }
-        .visor-content .articulo-numero { font-weight: 700; color: #1e3c72; font-size: 1.1rem; }
+        .visor-content .articulo-numero { font-weight: 700; color: #1e3c72; font-size: 1.1rem; margin-bottom: 8px; }
+        .visor-content .articulo-contenido { color: #2d3748; }
         .toolbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
         .export-btn { background: #28a745; color: white; border: none; border-radius: 8px; padding: 6px 14px; transition: all 0.2s; }
         .export-btn:hover { background: #218838; }
@@ -24,7 +25,6 @@
         .compilation-info { background: #f8fafc; border-radius: 8px; padding: 12px 18px; margin-top: 20px; font-size: 0.85rem; border-left: 4px solid #1e3c72; }
         .loading { display: flex; justify-content: center; align-items: center; padding: 60px; }
         
-        /* Estilos para selector de fecha histórica (Issue #16) */
         .fecha-selector {
             background: #f8fafc;
             border-radius: 8px;
@@ -40,10 +40,7 @@
             padding: 5px 8px;
             font-size: 0.85rem;
         }
-        .fecha-selector button {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-        }
+        .fecha-selector button { padding: 5px 10px; font-size: 0.8rem; }
         .badge-historico {
             background-color: #f59e0b;
             color: white;
@@ -62,11 +59,16 @@
             font-size: 0.9rem;
         }
         
-        @media print { .toolbar, .card-header-custom, .navbar, .footer, .btn, .no-print { display: none !important; } .visor-content { padding: 20px; } body { background: white; } }
+        @media print {
+            .toolbar, .card-header-custom, .navbar, .footer, .btn, .no-print { display: none !important; }
+            .visor-content { padding: 20px; }
+            body { background: white; }
+        }
     </style>
 </head>
 <body>
     <div id="navbar-placeholder"></div>
+    
     <div class="container compiler-container mt-4 mb-5">
         <div class="visor-preview">
             <div class="card-header-custom">
@@ -82,7 +84,6 @@
                     </select>
                 </div>
                 
-                <!-- Selector de fecha histórica (Issue #16) -->
                 <div class="fecha-selector">
                     <i class="fas fa-calendar-alt text-muted"></i>
                     <input type="date" id="fecha-historia" value="">
@@ -121,6 +122,7 @@
             <div id="compilation-info" class="compilation-info mx-3 mb-3 no-print" style="display: none;"></div>
         </div>
     </div>
+    
     <div id="footer-placeholder"></div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -130,7 +132,7 @@
     
     <script>
         // =====================================================
-        // COMPILADOR NORMATIVO CON SOPORTE HISTÓRICO (Issue #16)
+        // COMPILADOR NORMATIVO CORREGIDO
         // =====================================================
         
         let currentNormativaId = null;
@@ -141,16 +143,16 @@
             fetch('/views/shared/navbar.view.html')
                 .then(res => res.text())
                 .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
-                .catch(err => { 
-                    console.error(err); 
+                .catch(err => {
+                    console.error(err);
                     document.getElementById('navbar-placeholder').innerHTML = '<nav class="navbar navbar-dark bg-dark p-3"><a class="navbar-brand" href="#">AIR - Compilador</a></nav>';
                 });
             
             fetch('/views/shared/footer.view.html')
                 .then(res => res.text())
                 .then(data => document.getElementById('footer-placeholder').innerHTML = data)
-                .catch(err => { 
-                    console.error(err); 
+                .catch(err => {
+                    console.error(err);
                     document.getElementById('footer-placeholder').innerHTML = '<footer class="text-center text-muted py-3 mt-4 border-top"><small>Asamblea Institucional Representativa - TEC</small></footer>';
                 });
         }
@@ -161,7 +163,7 @@
                 const result = await response.json();
                 const select = $('#normativa-select');
                 
-                if (result.success && result.data) {
+                if (result.success && result.data && result.data.length > 0) {
                     select.empty();
                     select.append('<option value="">-- Seleccione un reglamento --</option>');
                     result.data.forEach(n => {
@@ -180,7 +182,6 @@
                     const val = $(this).val();
                     if (val) {
                         currentNormativaId = val;
-                        // Si hay una fecha seleccionada, usarla
                         if (currentFecha) {
                             loadCompiledVersion(currentNormativaId, currentFecha);
                         } else {
@@ -195,7 +196,6 @@
                 const hoy = new Date().toISOString().split('T')[0];
                 document.getElementById('fecha-historia').value = hoy;
                 
-                // Evento: Buscar en fecha específica
                 document.getElementById('btn-fecha-historia').addEventListener('click', () => {
                     const fecha = document.getElementById('fecha-historia').value;
                     if (fecha && currentNormativaId) {
@@ -203,12 +203,9 @@
                         loadCompiledVersion(currentNormativaId, fecha);
                     } else if (!currentNormativaId) {
                         alert('Primero seleccione un reglamento');
-                    } else if (!fecha) {
-                        alert('Seleccione una fecha');
                     }
                 });
                 
-                // Evento: Volver a versión vigente
                 document.getElementById('btn-volver-vigente').addEventListener('click', () => {
                     currentFecha = null;
                     esVersionHistorica = false;
@@ -227,12 +224,9 @@
         function loadMockNormativasList(select) {
             select.empty();
             select.append('<option value="">-- Seleccione un reglamento --</option>');
-            select.append('<option value="1">Reglamento General de la Asamblea (v3.0)</option>');
-            select.append('<option value="2">Reglamento de Faltas (v2.1)</option>');
-            select.select2({
-                placeholder: "Seleccione un reglamento",
-                allowClear: true
-            });
+            select.append('<option value="1">Reglamento General de la Asamblea (v1.0)</option>');
+            select.append('<option value="2">Reglamento de Faltas (v2.0)</option>');
+            select.select2({ placeholder: "Seleccione un reglamento", allowClear: true });
             
             select.off('change').on('change', function() {
                 if ($(this).val()) {
@@ -270,7 +264,6 @@
                     renderCompilation(result.data);
                     renderCompilationInfo(result.data);
                     
-                    // Mostrar/ocultar botón "Volver a vigente"
                     const btnVolver = document.getElementById('btn-volver-vigente');
                     if (esVersionHistorica) {
                         btnVolver.style.display = 'inline-flex';
@@ -295,16 +288,14 @@
             const esHistorica = data.es_version_historica || false;
             const fechaConsulta = data.fecha_consulta || '';
             
-            // Badge histórico si aplica
             const badgeHistorico = esHistorica ? 
                 `<span class="badge-historico"><i class="fas fa-history me-1"></i> Vigente al: ${fechaConsulta}</span>` : '';
             
             let html = `
-                <h1>${data.titulo || data.reglamento?.nombre_normativa || 'Reglamento Compilado'} ${badgeHistorico}</h1>
+                <h1>${data.titulo || 'Reglamento Compilado'} ${badgeHistorico}</h1>
                 <p class="text-muted">${data.descripcion || 'Texto oficial compilado que integra todas las reformas aprobadas'}</p>
             `;
             
-            // Alerta para vista histórica
             if (esHistorica) {
                 html += `<div class="alert-historico">
                     <i class="fas fa-info-circle me-2 text-warning"></i>
@@ -312,22 +303,23 @@
                 </div>`;
             }
             
-            // Mostrar artículos
+            // Mostrar artículos - CORREGIDO para manejar diferentes nombres de campo
             if (data.articulos && data.articulos.length > 0) {
                 data.articulos.forEach(art => {
+                    // Obtener el contenido correctamente (puede venir como 'contenido' o 'contenido_texto')
+                    const contenido = art.contenido || art.contenido_texto || 'Contenido no disponible';
+                    
                     html += `
-                        <div class="articulo" id="art-${art.id}">
-                            <div class="articulo-numero">${art.numero}</div>
-                            <div class="articulo-contenido">${art.contenido || 'Sin contenido'}</div>
-                            ${art.reformado_en ? `<div class="small text-muted mt-2"><i class="fas fa-edit"></i> Reformado: ${art.reformado_en}</div>` : ''}
+                        <div class="articulo" id="art-${art.id || art.id_elemento}">
+                            <div class="articulo-numero">${art.numero || art.numero_etiqueta || 'Artículo'}</div>
+                            <div class="articulo-contenido">${contenido}</div>
                         </div>
                     `;
                 });
             } else if (data.arbol && data.arbol.length > 0) {
-                // Si viene en formato árbol
                 html += renderArbol(data.arbol);
             } else {
-                html += `<p class="text-muted text-center">No hay artículos disponibles para este reglamento ${esHistorica ? 'en la fecha seleccionada' : ''}.</p>`;
+                html += `<div class="alert alert-info text-center">No hay artículos disponibles para este reglamento ${esHistorica ? 'en la fecha seleccionada' : ''}.</div>`;
             }
             
             container.innerHTML = html;
@@ -337,10 +329,11 @@
             let html = '';
             for (const nodo of nodos) {
                 const margen = nivel * 20;
+                const contenido = nodo.contenido || nodo.contenido_texto || 'Sin contenido';
                 html += `
                     <div class="articulo" style="margin-left: ${margen}px;">
-                        <div class="articulo-numero">${nodo.numero}</div>
-                        <div class="articulo-contenido">${nodo.contenido || 'Sin contenido'}</div>
+                        <div class="articulo-numero">${nodo.numero || nodo.numero_etiqueta}</div>
+                        <div class="articulo-contenido">${contenido}</div>
                 `;
                 if (nodo.hijos && nodo.hijos.length > 0) {
                     html += renderArbol(nodo.hijos, nivel + 1);
@@ -354,21 +347,14 @@
             const infoDiv = document.getElementById('compilation-info');
             infoDiv.style.display = 'block';
             
-            let infoHtml = `
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Compilación vigente al:</strong> ${new Date().toLocaleDateString()}
-            `;
+            let infoHtml = `<i class="fas fa-info-circle me-2"></i><strong>Compilación:</strong> ${data.titulo || 'Reglamento'}`;
             
             if (data.total_articulos) {
                 infoHtml += ` | <strong>Total artículos:</strong> ${data.total_articulos}`;
             }
             
-            if (data.ultima_reforma) {
-                infoHtml += ` | <strong>Última reforma:</strong> ${data.ultima_reforma}`;
-            }
-            
             if (data.es_version_historica) {
-                infoHtml += ` | <span class="text-warning"><i class="fas fa-clock me-1"></i>Vista histórica</span>`;
+                infoHtml += ` | <span class="text-warning"><i class="fas fa-clock me-1"></i>Vista histórica (${data.fecha_consulta})</span>`;
             }
             
             infoDiv.innerHTML = infoHtml;
@@ -381,21 +367,19 @@
             const mockData = {
                 1: {
                     titulo: 'Reglamento General de la Asamblea',
-                    descripcion: 'Texto compilado que integra todas las reformas aprobadas hasta la fecha.',
-                    version: '3.0',
-                    total_articulos: 45,
+                    descripcion: 'Texto compilado que integra todas las reformas aprobadas.',
+                    total_articulos: 3,
                     es_version_historica: esHistorica,
                     fecha_consulta: fechaStr,
                     articulos: [
-                        { id: 1, numero: 'Artículo 1', contenido: 'El presente Reglamento tiene por objeto regular el funcionamiento de la Asamblea Universitaria, estableciendo sus competencias, organización y procedimientos.' },
-                        { id: 2, numero: 'Artículo 2', contenido: 'La Asamblea Universitaria se rige por los principios de democracia participativa, transparencia, publicidad de los actos y rendición de cuentas.' },
-                        { id: 3, numero: 'Artículo 3', contenido: esHistorica ? '(Versión histórica) Son miembros de la Asamblea los representantes de los sectores docente y estudiantil.' : 'Son miembros de la Asamblea Universitaria los representantes de los sectores docente, estudiantil y administrativo, elegidos conforme a las normas electorales vigentes.' }
+                        { id: 1, numero: 'Artículo 1', contenido: 'El presente Reglamento tiene por objeto regular el funcionamiento de la Asamblea Universitaria.' },
+                        { id: 2, numero: 'Artículo 2', contenido: 'La Asamblea se rige por los principios de democracia participativa y transparencia.' },
+                        { id: 3, numero: 'Artículo 3', contenido: 'Son miembros de la Asamblea los representantes de los sectores docente, estudiantil y administrativo.' }
                     ]
                 },
                 default: {
                     titulo: 'Reglamento Compilado',
-                    descripcion: 'Documento normativo compilado con las disposiciones vigentes.',
-                    version: 'Vigente',
+                    descripcion: 'Documento normativo compilado.',
                     total_articulos: 0,
                     es_version_historica: esHistorica,
                     fecha_consulta: fechaStr,
@@ -407,7 +391,6 @@
             renderCompilation(data);
             renderCompilationInfo(data);
             
-            // Mostrar/ocultar botón "Volver a vigente"
             const btnVolver = document.getElementById('btn-volver-vigente');
             if (esHistorica) {
                 btnVolver.style.display = 'inline-flex';
@@ -431,12 +414,10 @@
             esVersionHistorica = false;
         }
 
-        // Imprimir
         document.getElementById('btn-print').addEventListener('click', () => {
             window.print();
         });
 
-        // Exportar PDF
         document.getElementById('btn-export-pdf').addEventListener('click', async () => {
             const element = document.getElementById('visor-content');
             const infoElement = document.getElementById('compilation-info');
@@ -447,7 +428,7 @@
                 margin: [0.5, 0.5, 0.5, 0.5],
                 filename: `compilacion_normativa_${new Date().toISOString().slice(0,10)}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, letterRendering: true },
+                html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
             
@@ -455,7 +436,6 @@
             infoElement.style.display = originalDisplay;
         });
 
-        // Inicializar
         loadSharedComponents();
         loadNormativasList();
     </script>

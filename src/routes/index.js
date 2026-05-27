@@ -254,6 +254,64 @@ router.get('/api/normativa/articulo/:id', async (req, res) => {
         res.status(500).json({ success: false, message: 'Error al cargar el artículo' });
     }
 });
-router.get('/api/normativa/compilado/:id', normativaController.getCompilado.bind(normativaController));
+router.get('/api/normativa/compilado/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    const { fecha } = req.query;
+    
+    let fechaConsulta = fecha ? new Date(fecha) : new Date();
+    const hoy = new Date();
+    if (fechaConsulta > hoy) fechaConsulta = hoy;
+    const fechaStr = fechaConsulta.toISOString().split('T')[0];
+    
+    try {
+        // Obtener datos del reglamento
+        const reglamentoResult = await db.query(`
+            SELECT id_reglamento, nombre_normativa as titulo, sigla 
+            FROM reglamento 
+            WHERE id_reglamento = $1 AND activo = TRUE
+        `, [id]);
+        
+        if (reglamentoResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Reglamento no encontrado' });
+        }
+        
+        // Obtener artículos vigentes en la fecha consultada
+        const articulosResult = await db.query(`
+            SELECT 
+                e.id_elemento as id,
+                e.numero_etiqueta as numero,
+                e.contenido_texto as contenido,
+                e.fecha_inicio_vigencia,
+                e.fecha_fin_vigencia
+            FROM elemento_normativo e
+            WHERE e.id_reglamento = $1
+              AND e.id_nivel_reglamento = 3
+              AND e.fecha_inicio_vigencia <= $2
+              AND (e.fecha_fin_vigencia IS NULL OR e.fecha_fin_vigencia > $2)
+            ORDER BY e.orden
+        `, [id, fechaStr]);
+        
+        const esVersionHistorica = fechaConsulta < new Date();
+        
+        res.json({
+            success: true,
+            data: {
+                titulo: reglamentoResult.rows[0].titulo,
+                descripcion: `Texto compilado del ${reglamentoResult.rows[0].titulo}`,
+                version: esVersionHistorica ? `Vigente al ${fechaStr}` : 'Vigente',
+                total_articulos: articulosResult.rows.length,
+                ultima_reforma: null,
+                es_version_historica: esVersionHistorica,
+                fecha_consulta: fechaStr,
+                articulos: articulosResult.rows
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error en compilador histórico:', error);
+        res.status(500).json({ success: false, message: 'Error al cargar el compilado' });
+    }
+});
 
 module.exports = router;
