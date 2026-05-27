@@ -45,25 +45,28 @@ router.put('/api/nombramientos/:id/finalizar', nombramientoController.finalizarN
 // =====================================================
 // RUTAS DE CATÁLOGOS
 // =====================================================
+
 router.get('/api/catalogos/sectores', async (req, res) => {
+    const db = require('../config/db');
     try {
-        const result = await db.query('SELECT id_sector, nombre FROM catalogo_sector WHERE activo = TRUE');
+        const result = await db.query('SELECT id_sector, nombre FROM catalogo_sector WHERE activo = TRUE ORDER BY id_sector');
         res.json({ success: true, data: result.rows });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error al cargar sectores' });
+        console.error('Error en sectores:', error);
+        res.json({ success: true, data: [] });  // Devuelve array vacío en lugar de error
     }
 });
 
 router.get('/api/catalogos/puestos', async (req, res) => {
+    const db = require('../config/db');
     try {
-        const result = await db.query('SELECT id_puesto, nombre_puesto as nombre FROM catalogo_puestos WHERE activo = TRUE');
+        const result = await db.query('SELECT id_puesto, nombre_puesto as nombre FROM catalogo_puestos WHERE activo = TRUE ORDER BY id_puesto');
         res.json({ success: true, data: result.rows });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error al cargar puestos' });
+        console.error('Error en puestos:', error);
+        res.json({ success: true, data: [] });
     }
 });
-
-
 // =====================================================
 // RUTAS DE SESIONES
 // =====================================================
