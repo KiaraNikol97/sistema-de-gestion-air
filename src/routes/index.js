@@ -62,6 +62,69 @@ router.get('/api/catalogos/puestos', async (req, res) => {
     }
 });
 
+
+// =====================================================
+// RUTAS DE SESIONES
+// =====================================================
+
+// Listar todas las sesiones
+router.get('/api/sesiones', async (req, res) => {
+    const db = require('../config/db');
+    try {
+        const result = await db.query(`
+            SELECT id_sesion, numero_sesion, tipo_sesion, fecha, quorum_requerido 
+            FROM sesion 
+            ORDER BY fecha DESC
+        `);
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error cargando sesiones:', error);
+        // Si la tabla no existe, devolver array vacío
+        res.json({ success: true, data: [] });
+    }
+});
+
+// Obtener una sesión por ID
+router.get('/api/sesiones/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    try {
+        const result = await db.query(`
+            SELECT id_sesion, numero_sesion, tipo_sesion, fecha, quorum_requerido 
+            FROM sesion 
+            WHERE id_sesion = $1
+        `, [id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Sesión no encontrada' });
+        }
+        
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al cargar sesión' });
+    }
+});
+
+// Crear nueva sesión
+router.post('/api/sesiones/crear', async (req, res) => {
+    const db = require('../config/db');
+    const { numero_sesion, tipo_sesion, fecha, quorum_requerido } = req.body;
+    
+    try {
+        const result = await db.query(`
+            INSERT INTO sesion (numero_sesion, tipo_sesion, fecha, quorum_requerido)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id_sesion
+        `, [numero_sesion, tipo_sesion, fecha, quorum_requerido]);
+        
+        res.json({ success: true, data: { id: result.rows[0].id_sesion }, message: 'Sesión creada exitosamente' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, message: 'Error al crear sesión' });
+    }
+});
+
 // =====================================================
 // RUTAS DE BITÁCORA (Issue #13)
 // =====================================================
