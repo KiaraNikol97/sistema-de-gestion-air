@@ -23,9 +23,14 @@
   },
   "homepage": "https://github.com/KiaraNikol97/sistema-de-gestion-air#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "mysql2": "^3.22.4"
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.22.4",
+    "pg": "^8.21.0"
   }
 }
