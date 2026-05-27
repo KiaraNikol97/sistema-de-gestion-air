@@ -1,4 +1,3 @@
-<!-- /src/views/certificaciones/certificado-final.view.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,130 +7,28 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f0f0f0;
-            padding: 40px 0;
-            font-family: 'Segoe UI', Arial, sans-serif;
-        }
-        .certificado-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .certificado {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .certificado-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .certificado-header h1 {
-            font-size: 1.8rem;
-            margin-bottom: 5px;
-        }
-        .certificado-body {
-            padding: 40px;
-            font-family: 'Georgia', 'Times New Roman', serif;
-            line-height: 1.6;
-        }
-        .certificado-footer {
-            padding: 20px 40px 40px;
-            border-top: 1px solid #e0e0e0;
-            font-size: 0.85rem;
-        }
-        .folio {
-            background-color: #f8f9fc;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .folio-number {
-            font-family: monospace;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #1e3c72;
-        }
-        .declaracion {
-            background-color: #f8fafc;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 30px;
-            font-style: italic;
-            border-left: 4px solid #1e3c72;
-        }
-        .participacion-item {
-            margin-bottom: 25px;
-            border-left: 3px solid #cbd5e0;
-            padding-left: 15px;
-        }
-        .firma-area {
-            margin-top: 50px;
-            text-align: center;
-        }
-        .firma-linea {
-            border-top: 1px solid #333;
-            width: 250px;
-            margin: 30px auto 10px;
-        }
-        .btn-actions {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 30px;
-            margin-bottom: 30px;
-        }
-        .btn-print {
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .btn-back {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .loading {
-            text-align: center;
-            padding: 50px;
-        }
-        .error-msg {
-            background-color: #fee2e2;
-            color: #dc2626;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #dc2626;
-        }
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-            }
-            .btn-actions, .no-print, #navbar-placeholder, #footer-placeholder {
-                display: none !important;
-            }
-            .certificado {
-                box-shadow: none;
-                border-radius: 0;
-            }
-        }
+        body { background-color: #f0f0f0; padding: 40px 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        .certificado-container { max-width: 900px; margin: 0 auto; }
+        .certificado { background: white; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .certificado-header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 30px; text-align: center; }
+        .certificado-header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        .certificado-body { padding: 40px; font-family: 'Georgia', 'Times New Roman', serif; line-height: 1.6; }
+        .certificado-footer { padding: 20px 40px 40px; border-top: 1px solid #e0e0e0; font-size: 0.85rem; }
+        .folio { background-color: #f8f9fc; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 30px; }
+        .folio-number { font-family: monospace; font-size: 1.2rem; font-weight: bold; color: #1e3c72; }
+        .declaracion { background-color: #f8fafc; padding: 20px; border-radius: 10px; margin-top: 30px; font-style: italic; border-left: 4px solid #1e3c72; }
+        .participacion-item { margin-bottom: 25px; border-left: 3px solid #cbd5e0; padding-left: 15px; }
+        .firma-area { margin-top: 50px; text-align: center; }
+        .firma-linea { border-top: 1px solid #333; width: 250px; margin: 30px auto 10px; }
+        .btn-actions { display: flex; justify-content: center; gap: 15px; margin-top: 30px; margin-bottom: 30px; }
+        .btn-print { background-color: #6c757d; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; }
+        .btn-back { background-color: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; }
+        .loading { text-align: center; padding: 50px; }
+        .error-msg { background-color: #fee2e2; color: #dc2626; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc2626; }
+        @media print { .btn-actions, .no-print { display: none !important; } .certificado { box-shadow: none; border-radius: 0; } body { background: white; padding: 0; } }
     </style>
 </head>
 <body>
-    <!-- Navbar (se oculta al imprimir) -->
-    <div id="navbar-placeholder" class="no-print"></div>
-
     <div class="certificado-container">
         <div class="certificado" id="certificado">
             <div class="certificado-header">
@@ -142,7 +39,7 @@
             </div>
 
             <div class="certificado-body" id="certificado-body">
-                <div id="loading-cert" class="loading">
+                <div id="loading" class="loading" style="display: none;">
                     <div class="spinner-border text-primary" role="status"></div>
                     <p class="mt-2">Generando certificado...</p>
                 </div>
@@ -153,7 +50,6 @@
                         <div class="folio-number" id="folio-number">DAIR-000-2025</div>
                         <small>Fecha de emisión: <span id="fecha-emision"></span></small>
                     </div>
-
                     <div id="certificado-texto"></div>
                 </div>
             </div>
@@ -163,7 +59,6 @@
                     <i class="fas fa-balance-scale me-2"></i>
                     <strong>Declaración Jurada:</strong> La información contenida en el presente documento es fiel reflejo de los registros de la Secretaría de la Asamblea Institucional Representativa. Quien suscribe declara bajo la gravedad del juramento que los datos aquí consignados son verídicos, conforme al artículo 301 de la Ley General de la Administración Pública.
                 </div>
-
                 <div class="firma-area">
                     <div class="firma-linea"></div>
                     <strong>Ing. Luis Gómez Gutiérrez</strong><br>
@@ -183,288 +78,27 @@
         </div>
     </div>
 
-    <!-- Footer (se oculta al imprimir) -->
-    <div id="footer-placeholder" class="no-print"></div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     <script>
-        // =====================================================
-        // CERTIFICADO CON DATOS REALES DESDE LA BASE DE DATOS
-        // =====================================================
-
-        let certificadoData = null;
-        let currentAsambleistaId = null;
-
-        function loadSharedComponents() {
-            // Navbar
-            fetch('/views/shared/navbar.view.html')
-                .then(res => {
-                    if (!res.ok) throw new Error('Navbar no encontrado');
-                    return res.text();
-                })
-                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
-                .catch(err => {
-                    console.error('Error cargando navbar:', err);
-                    document.getElementById('navbar-placeholder').innerHTML = `
-                        <nav style="background: #1e3c72; color: white; padding: 15px; text-align: center;">
-                            <strong>AIR - Sistema Legislativo</strong>
-                        </nav>
-                    `;
-                });
-            
-            // Footer
-            fetch('/views/shared/footer.view.html')
-                .then(res => {
-                    if (!res.ok) throw new Error('Footer no encontrado');
-                    return res.text();
-                })
-                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
-                .catch(err => {
-                    console.error('Error cargando footer:', err);
-                    document.getElementById('footer-placeholder').innerHTML = `
-                        <footer style="background: #f8fafc; text-align: center; padding: 15px; margin-top: 30px; border-top: 1px solid #e2e8f0;">
-                            <small>Asamblea Institucional Representativa - TEC</small>
-                        </footer>
-                    `;
-                });
-        }
-
         function volver() {
             window.location.href = '/views/certificaciones/atestados-solicitud.view.html';
         }
 
-        // Obtener parámetros de la URL
-        function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                id: params.get('id'),
-                desde: params.get('desde'),
-                hasta: params.get('hasta')
-            };
-        }
-
-        // Generar folio único
-        async function generarFolio() {
-            try {
-                const response = await fetch('/api/certificaciones/generar-folio', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const result = await response.json();
-                if (result.success) {
-                    return result.data.folio;
-                }
-                // Fallback: generar folio local
-                const año = new Date().getFullYear();
-                const numero = Math.floor(Math.random() * 100).toString().padStart(3, '0');
-                return `DAIR-${numero}-${año}`;
-            } catch (error) {
-                console.error('Error generando folio:', error);
-                const año = new Date().getFullYear();
-                const numero = Math.floor(Math.random() * 100).toString().padStart(3, '0');
-                return `DAIR-${numero}-${año}`;
-            }
-        }
-
-        // Cargar datos del asambleísta desde la BD
-        async function cargarDatosAsambleista(asambleistaId, fechaDesde, fechaHasta) {
-            try {
-                // Obtener datos básicos del asambleísta
-                const asambleistaResponse = await fetch(`/api/asambleistas/${asambleistaId}`);
-                const asambleistaResult = await asambleistaResponse.json();
-                
-                if (!asambleistaResult.success || !asambleistaResult.data) {
-                    throw new Error('No se encontraron datos del asambleísta');
-                }
-                
-                const asambleista = asambleistaResult.data;
-                
-                // Obtener sector vigente
-                let sectorNombre = 'No asignado';
-                try {
-                    const sectorResponse = await fetch(`/api/nombramientos/vigente/${asambleistaId}`);
-                    const sectorResult = await sectorResponse.json();
-                    if (sectorResult.success && sectorResult.data) {
-                        sectorNombre = sectorResult.data.sector;
-                    }
-                } catch (e) {
-                    console.error('Error obteniendo sector:', e);
-                }
-                
-                // Obtener asistencias
-                let asistencias = [];
-                try {
-                    const asistenciaResponse = await fetch(`/api/asistencias/asambleista/${asambleistaId}?desde=${fechaDesde}&hasta=${fechaHasta}`);
-                    const asistenciaResult = await asistenciaResponse.json();
-                    if (asistenciaResult.success) {
-                        asistencias = asistenciaResult.data;
-                    }
-                } catch (e) {
-                    console.error('Error obteniendo asistencias:', e);
-                    // Datos de ejemplo para demostración
-                    asistencias = [
-                        { fecha: "2024-01-15", sesion: "Ordinaria AIR-01-2024", tipo: "Ordinaria", asistio: true },
-                        { fecha: "2024-02-10", sesion: "Ordinaria AIR-02-2024", tipo: "Ordinaria", asistio: true },
-                        { fecha: "2024-03-05", sesion: "Extraordinaria AIR-03-2024", tipo: "Extraordinaria", asistio: true }
-                    ];
-                }
-                
-                // Obtener propuestas
-                let propuestas = [];
-                try {
-                    const propuestaResponse = await fetch(`/api/propuestas/asambleista/${asambleistaId}`);
-                    const propuestaResult = await propuestaResponse.json();
-                    if (propuestaResult.success) {
-                        propuestas = propuestaResult.data;
-                    }
-                } catch (e) {
-                    console.error('Error obteniendo propuestas:', e);
-                    propuestas = [
-                        { fecha: "2024-02-10", titulo: "Reforma al Artículo 5 del Estatuto", rol: "Proponente", estado: "Aprobada" }
-                    ];
-                }
-                
-                // Obtener comisiones
-                let comisiones = [];
-                try {
-                    const comisionResponse = await fetch(`/api/comisiones/asambleista/${asambleistaId}`);
-                    const comisionResult = await comisionResponse.json();
-                    if (comisionResult.success) {
-                        comisiones = comisionResult.data;
-                    }
-                } catch (e) {
-                    console.error('Error obteniendo comisiones:', e);
-                    comisiones = [
-                        { fecha_inicio: "2024-01-20", fecha_fin: null, nombre: "Comisión de Reforma Estatutaria", rol: "Coordinadora" }
-                    ];
-                }
-                
-                return {
-                    asambleista: {
-                        id: asambleista.id_asambleista,
-                        nombre: asambleista.nombre,
-                        cedula: asambleista.cedula,
-                        sector: sectorNombre
-                    },
-                    asistencia: asistencias,
-                    propuestas: propuestas,
-                    comisiones: comisiones
-                };
-                
-            } catch (error) {
-                console.error('Error cargando datos:', error);
-                throw error;
-            }
-        }
-
-        // Renderizar el certificado
-        function renderizarCertificado(data, folio, fechaEmision) {
-            const asistencias = data.asistencia.filter(a => a.asistio).length;
-            const totalSesiones = data.asistencia.length;
-            const porcentajeAsistencia = totalSesiones > 0 ? Math.round((asistencias / totalSesiones) * 100) : 0;
+        function cargarCertificado() {
+            const loading = document.getElementById('loading');
+            const contenido = document.getElementById('contenido-certificado');
+            const certificadoTexto = document.getElementById('certificado-texto');
             
-            let html = `
-                <div class="text-center mb-4">
-                    <h3>Certificación de Atestados</h3>
-                    <p>El suscrito Presidente del Directorio de la Asamblea Institucional Representativa del Tecnológico de Costa Rica, <strong>HACE CONSTAR</strong>:</p>
-                </div>
-
-                <div class="mb-4">
-                    <p>Que el(la) <strong>${data.asambleista.nombre}</strong>, portador(a) de la cédula de identidad <strong>${data.asambleista.cedula}</strong>, representante del sector <strong>${data.asambleista.sector}</strong>, tiene registrada la siguiente participación en la Asamblea:</p>
-                </div>
-
-                <div class="participacion-item">
-                    <h5><i class="fas fa-calendar-check text-success me-2"></i>Asistencia a Sesiones</h5>
-                    <p>Ha participado en <strong>${asistencias}</strong> de <strong>${totalSesiones}</strong> sesiones convocadas en el período, lo que representa un <strong>${porcentajeAsistencia}%</strong> de participación.</p>
-                </div>
-
-                <div class="participacion-item">
-                    <h5><i class="fas fa-file-alt text-info me-2"></i>Propuestas y Mociones</h5>
-                    ${data.propuestas.length > 0 ? `<ul>${data.propuestas.map(p => `<li><strong>${p.titulo}</strong> (${p.fecha}) - Rol: ${p.rol} - Estado: ${p.estado}</li>`).join('')}</ul>` : '<p>No hay propuestas registradas en el período.</p>'}
-                </div>
-
-                <div class="participacion-item">
-                    <h5><i class="fas fa-users text-warning me-2"></i>Comisiones de Trabajo</h5>
-                    ${data.comisiones.length > 0 ? `<ul>${data.comisiones.map(c => `<li><strong>${c.nombre}</strong> (${c.fecha_inicio} - ${c.fecha_fin || 'actualidad'}) - Rol: ${c.rol}</li>`).join('')}</ul>` : '<p>No hay comisiones registradas.</p>'}
-                </div>
-
-                <p class="mt-4">Se extiende la presente certificación a solicitud del interesado para los fines que estime convenientes.</p>
-            `;
+            const certificadoData = localStorage.getItem('certificadoData');
             
-            document.getElementById('folio-number').innerHTML = folio;
-            document.getElementById('fecha-emision').innerHTML = fechaEmision;
-            document.getElementById('certificado-texto').innerHTML = html;
-        }
-
-        // Guardar certificación en la BD
-        async function guardarCertificacion(asambleistaId, folio, hash) {
-            try {
-                const response = await fetch('/api/certificaciones/guardar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id_asambleista: asambleistaId,
-                        folio_unico: folio,
-                        hash_seguridad: hash
-                    })
-                });
-                const result = await response.json();
-                if (!result.success) {
-                    console.error('Error guardando certificación:', result.message);
-                }
-            } catch (error) {
-                console.error('Error guardando certificación:', error);
-            }
-        }
-
-        // Generar hash simple para el certificado
-        function generarHash(texto) {
-            let hash = 0;
-            for (let i = 0; i < texto.length; i++) {
-                const char = texto.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash;
-            }
-            return Math.abs(hash).toString(16);
-        }
-
-        // Inicializar certificado
-        async function iniciarCertificado() {
-            const loadingDiv = document.getElementById('loading-cert');
-            const contenidoDiv = document.getElementById('contenido-certificado');
+            console.log('Datos recuperados del localStorage:', certificadoData);
             
-            // Primero intentar obtener datos de localStorage (desde la solicitud)
-            let storedData = localStorage.getItem('certificadoData');
-            let asambleistaId = null;
-            let fechaDesde = null;
-            let fechaHasta = null;
-            
-            if (storedData) {
-                const parsed = JSON.parse(storedData);
-                if (parsed.asambleista && parsed.asambleista.id) {
-                    asambleistaId = parsed.asambleista.id;
-                    fechaDesde = parsed.fecha_desde;
-                    fechaHasta = parsed.fecha_hasta;
-                }
-            }
-            
-            // Si no hay datos en localStorage, obtener de URL
-            if (!asambleistaId) {
-                const urlParams = getUrlParams();
-                asambleistaId = urlParams.id;
-                fechaDesde = urlParams.desde;
-                fechaHasta = urlParams.hasta;
-            }
-            
-            if (!asambleistaId) {
-                loadingDiv.style.display = 'none';
-                document.getElementById('contenido-certificado').style.display = 'block';
-                document.getElementById('certificado-texto').innerHTML = `
+            if (!certificadoData) {
+                loading.style.display = 'none';
+                contenido.style.display = 'block';
+                certificadoTexto.innerHTML = `
                     <div class="error-msg">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        No se encontraron datos para generar el certificado. Por favor, regrese a la solicitud.
+                        No se encontraron datos del certificado. Por favor, regrese a la solicitud y genere el certificado nuevamente.
                     </div>
                     <div class="text-center mt-3">
                         <button class="btn btn-primary" onclick="volver()">Ir a Solicitud de Atestados</button>
@@ -474,50 +108,68 @@
             }
             
             try {
-                // Cargar datos desde la BD
-                const datos = await cargarDatosAsambleista(asambleistaId, fechaDesde, fechaHasta);
+                const data = JSON.parse(certificadoData);
+                const asambleista = data.asambleista;
+                const folio = data.folio;
+                const fechaEmision = data.fecha_emision;
                 
-                // Generar folio
-                const folio = await generarFolio();
-                const fechaEmision = new Date().toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
+                document.getElementById('folio-number').innerHTML = folio;
+                document.getElementById('fecha-emision').innerHTML = fechaEmision;
                 
-                // Generar hash del contenido
-                const contenidoTexto = JSON.stringify(datos) + folio + fechaEmision;
-                const hash = generarHash(contenidoTexto);
+                const asistencias = data.asistencia?.asistencias || 0;
+                const totalSesiones = data.asistencia?.total_sesiones || 0;
+                const porcentajeAsistencia = data.asistencia?.porcentaje || 0;
                 
-                // Guardar certificación en la BD
-                await guardarCertificacion(asambleistaId, folio, hash);
-                
-                // Renderizar certificado
-                renderizarCertificado(datos, folio, fechaEmision);
-                
-                // Limpiar localStorage después de usar
-                localStorage.removeItem('certificadoData');
-                
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('certificado-texto').innerHTML = `
-                    <div class="error-msg">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error al generar el certificado: ${error.message}
+                let html = `
+                    <div class="text-center mb-4">
+                        <h3>Certificación de Atestados</h3>
+                        <p>El suscrito Presidente del Directorio de la Asamblea Institucional Representativa del Tecnológico de Costa Rica, <strong>HACE CONSTAR</strong>:</p>
                     </div>
-                    <div class="text-center mt-3">
-                        <button class="btn btn-primary" onclick="volver()">Ir a Solicitud de Atestados</button>
+                    <div class="mb-4">
+                        <p>Que el(la) <strong>${asambleista.nombre}</strong>, portador(a) de la cédula de identidad <strong>${asambleista.cedula}</strong>, representante del sector <strong>${asambleista.sector}</strong>, tiene registrada la siguiente participación en la Asamblea:</p>
+                    </div>
+                    <div class="participacion-item">
+                        <h5><i class="fas fa-calendar-check text-success me-2"></i>Asistencia a Sesiones</h5>
+                        <p>Ha participado en <strong>${asistencias}</strong> de <strong>${totalSesiones}</strong> sesiones convocadas en el período, lo que representa un <strong>${porcentajeAsistencia}%</strong> de participación.</p>
                     </div>
                 `;
-            } finally {
-                loadingDiv.style.display = 'none';
-                contenidoDiv.style.display = 'block';
+                
+                if (data.propuestas && data.propuestas.length > 0) {
+                    html += `<div class="participacion-item"><h5><i class="fas fa-file-alt text-info me-2"></i>Propuestas y Mociones</h5><ul>`;
+                    data.propuestas.forEach(p => {
+                        html += `<li><strong>${p.titulo}</strong> (${p.fecha}) - Rol: ${p.rol} - Estado: ${p.estado}</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+                
+                if (data.comisiones && data.comisiones.length > 0) {
+                    html += `<div class="participacion-item"><h5><i class="fas fa-users text-warning me-2"></i>Comisiones de Trabajo</h5><ul>`;
+                    data.comisiones.forEach(c => {
+                        html += `<li><strong>${c.nombre}</strong> (${c.fecha_inicio} - ${c.fecha_fin || 'actualidad'}) - Rol: ${c.rol}</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+                
+                html += `<p class="mt-4">Se extiende la presente certificación a solicitud del interesado para los fines que estime convenientes.</p>`;
+                
+                certificadoTexto.innerHTML = html;
+                loading.style.display = 'none';
+                contenido.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error parseando datos:', error);
+                loading.style.display = 'none';
+                contenido.style.display = 'block';
+                certificadoTexto.innerHTML = `
+                    <div class="error-msg">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error al cargar los datos del certificado.
+                    </div>
+                `;
             }
         }
         
-        // Inicializar
-        loadSharedComponents();
-        iniciarCertificado();
+        cargarCertificado();
     </script>
 </body>
 </html>
