@@ -577,11 +577,11 @@ INSERT INTO sys_permiso (id_permiso, nombre_permiso, descripcion) VALUES
 (5, 'consultar_normativa', 'Permite consultar normativa');
 
 INSERT INTO sys_usuario (id_usuario, username, password_hash, email, activo) VALUES
-(1, 'admin', 'Admin123', 'admin@air.go.cr', TRUE),
-(2, 'secretaria', 'Secretaria123', 'secretaria@air.go.cr', TRUE),
-(3, 'asambleista_user', 'Asamblea123', 'asambleista@air.go.cr', TRUE),
-(4, 'directorio01', 'Directorio123', 'directorio@air.go.cr', TRUE),
-(5, 'consulta01', 'Consulta123', 'consulta@air.go.cr', TRUE);
+(1, 'admin',            '$2b$10$rWP2zXw8iKjddU.PiKBsIul9ELjT0fngspOOOr.J9nu3aO.GOVOfi', 'admin@air.go.cr', TRUE),
+(2, 'secretaria',       '$2b$10$UX9sFXgY85ICf5f095TSQOV5VvASwRlD47jO2fBDh4SLYmYYI/IBm', 'secretaria@air.go.cr', TRUE),
+(3, 'asambleista_user', '$2b$10$Xn2N1wI6cpSddDVpW/9EAOVayzra8renAPoWJMarkSfTzihUM84km', 'asambleista@air.go.cr', TRUE),
+(4, 'directorio01',     '$2b$10$cFyI1ebYFJEzypQOdKj4Te4Dj7QogZ3BjxdIEH8vH/6.fz.IGMYRm', 'directorio@air.go.cr', TRUE),
+(5, 'consulta01',       '$2b$10$Vco/qYEuymdbOLrd6BFraO.qYtCyl4hp8QqBwzzT8Jx64KC2sx.3m', 'consulta@air.go.cr', TRUE);
 
 INSERT INTO sys_usuario_rol (id_usuario, id_rol) VALUES
 (1, 1),
