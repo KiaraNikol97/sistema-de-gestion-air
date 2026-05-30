@@ -626,7 +626,8 @@ VALUES
 INSERT INTO elemento_normativo
 (id_elemento, id_reglamento, id_elemento_padre, id_nivel_reglamento, numero_etiqueta, contenido_texto, orden, fecha_inicio_vigencia, id_estado_vigencia, id_usuario_registro)
 VALUES
-(4, 1, 2, 3, '1.1', 'Texto reformado del artículo 1.', 1, '2025-01-01', 1, 1);
+(4, 1, 2, 3, '1.1', 'Texto reformado del artículo 1.', 1, '2025-01-01', 1, 1),
+(5, 1, 3, 4, 'a)', 'Este es un inciso de ejemplo dentro del artículo 1.1', 1, '2024-01-01', 1, 1);
 
 INSERT INTO reforma_aplicada
 (id_reforma, id_resolucion, id_elemento_normativo, texto_anterior, texto_nuevo, fecha_inicio_vigencia, id_tipo_reforma, id_usuario_registro)
