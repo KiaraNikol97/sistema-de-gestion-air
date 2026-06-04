@@ -702,22 +702,96 @@ ORDER BY u.id_usuario;
 -- Verificación de auditoría.
 SELECT * FROM sys_log_auditoria ORDER BY id_log;
 
+
+
+
 -- =====================================================
--- 10. PRUEBAS NEGATIVAS OPCIONALES
+-- 10. PRUEBAS SOLICITADAS PARA LA PRESENTACIÓN
+
+-- (Se ejecuta después del código anterior)
 -- =====================================================
--- Ejecutar una por una (evidencia de rechazo)
 
--- Debe fallar: cédula repetida.
--- INSERT INTO asambleista (cedula, nombre, correo_institucional)
--- VALUES ('1-2345-6789', 'Persona Duplicada', 'duplicada@tec.ac.cr');
+-- 1) Trigger de Vigencia:
 
--- Debe fallar: nombre obligatorio vacío.
--- INSERT INTO asambleista (cedula, nombre, correo_institucional)
--- VALUES ('3-4567-8901', '', 'prueba@tec.ac.cr');
+-- Ver el estado actual del artículo '1.1' (elemento 3 y 4)
+SELECT
+    id_elemento,
+    numero_etiqueta,
+    contenido_texto,
+    fecha_inicio_vigencia,
+    fecha_fin_vigencia,
+    id_estado_vigencia  -- 1 = Vigente, 2 = Histórico
+FROM elemento_normativo
+WHERE numero_etiqueta = '1.1'
+ORDER BY fecha_inicio_vigencia;
 
--- Debe fallar: traslape de nombramiento activo en el mismo sector.
--- INSERT INTO nombramiento (id_asambleista, id_sector, id_puesto, fecha_inicio, fecha_fin, estado, id_usuario_registro)
--- VALUES (1, 1, 2, '2024-03-01', '2024-06-01', 'Activo', 1);
+-- Insertar una nueva versión vigente del artículo '1.1'
+INSERT INTO elemento_normativo
+(id_reglamento, id_elemento_padre, id_nivel_reglamento, numero_etiqueta,
+ contenido_texto, orden, fecha_inicio_vigencia, id_estado_vigencia, id_usuario_registro)
+VALUES
+(1, 2, 3, '1.1',
+ 'Texto de la segunda reforma del artículo 1.1.',
+ 1, '2026-01-01', 1, 1);
 
--- Debe fallar: no se puede borrar un título si tiene capítulos asociados.
--- DELETE FROM elemento_normativo WHERE id_elemento = 1;
+-- Ver cómo quedaron las versiones después del trigger
+SELECT
+    id_elemento,
+    numero_etiqueta,
+    contenido_texto,
+    fecha_inicio_vigencia,
+    fecha_fin_vigencia,
+    id_estado_vigencia  -- Elemento 4 ahora debe ser 2 (Histórico)
+FROM elemento_normativo
+WHERE numero_etiqueta = '1.1'
+ORDER BY fecha_inicio_vigencia;
+
+
+-- 2) SP de Nombramientros:
+
+-- Ver Nombramiento activo de Ana en sector Docente
+SELECT
+    n.id_nombramiento,
+    a.nombre,
+    s.nombre AS sector,
+    n.fecha_inicio,
+    n.fecha_fin,
+    n.estado
+FROM nombramiento n
+JOIN asambleista a ON n.id_asambleista = a.id_asambleista
+JOIN catalogo_sector s ON n.id_sector = s.id_sector
+WHERE n.id_asambleista = 1 AND n.id_sector = 1;
+
+-- Debe fallar: traslape de nombramiento activo en el mismo sector
+INSERT INTO nombramiento (id_asambleista, id_sector, id_puesto, fecha_inicio, fecha_fin, estado, id_usuario_registro)
+VALUES (1, 1, 2, '2024-03-01', '2024-06-01', 'Activo', 1);
+
+
+-- 3) Audit Log:
+
+-- Ver registros actuales
+SELECT
+    id_log,
+    accion,
+    tabla_afectada,
+    detalle
+FROM sys_log_auditoria
+ORDER BY id_log DESC
+LIMIT 5;
+
+-- Hacer un UPDATE visible (cambiar correo de Ana)
+UPDATE asambleista
+SET correo_institucional = 'ana.prueba.video@tec.ac.cr'
+WHERE id_asambleista = 1;
+
+-- Ver la auditoría nuevamente para visualizar el cambio
+SELECT
+    id_log,
+    id_usuario,
+    accion,
+    tabla_afectada,
+    detalle,
+    fecha_hora
+FROM sys_log_auditoria
+ORDER BY id_log DESC
+LIMIT 5;
