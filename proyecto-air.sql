@@ -1816,25 +1816,26 @@ AFTER UPDATE ON asambleista
 FOR EACH ROW
 EXECUTE FUNCTION fn_bitacora_asambleista();
 
-CREATE TRIGGER tg_auditoria_asambleista
-AFTER INSERT OR UPDATE OR DELETE ON asambleista
-FOR EACH ROW
-EXECUTE FUNCTION fn_auditoria_general();
+-- Triggers de auditoría básica vieja:
+-- CREATE TRIGGER tg_auditoria_asambleista
+-- AFTER INSERT OR UPDATE OR DELETE ON asambleista
+-- FOR EACH ROW
+-- EXECUTE FUNCTION fn_auditoria_general();
 
-CREATE TRIGGER tg_auditoria_elemento_normativo
-AFTER INSERT OR UPDATE OR DELETE ON elemento_normativo
-FOR EACH ROW
-EXECUTE FUNCTION fn_auditoria_general();
+-- CREATE TRIGGER tg_auditoria_elemento_normativo
+-- AFTER INSERT OR UPDATE OR DELETE ON elemento_normativo
+-- FOR EACH ROW
+-- EXECUTE FUNCTION fn_auditoria_general();
 
-CREATE TRIGGER tg_auditoria_nombramiento
-AFTER INSERT OR UPDATE OR DELETE ON nombramiento
-FOR EACH ROW
-EXECUTE FUNCTION fn_auditoria_general();
+-- CREATE TRIGGER tg_auditoria_nombramiento
+-- AFTER INSERT OR UPDATE OR DELETE ON nombramiento
+-- FOR EACH ROW
+-- EXECUTE FUNCTION fn_auditoria_general();
 
-CREATE TRIGGER tg_auditoria_reforma_aplicada
-AFTER INSERT OR UPDATE OR DELETE ON reforma_aplicada
-FOR EACH ROW
-EXECUTE FUNCTION fn_auditoria_general();
+-- CREATE TRIGGER tg_auditoria_reforma_aplicada
+-- AFTER INSERT OR UPDATE OR DELETE ON reforma_aplicada
+-- FOR EACH ROW
+-- EXECUTE FUNCTION fn_auditoria_general();
 
 -- Sprint 3:
 
@@ -3646,7 +3647,23 @@ VALUES
     (EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER, 0, 'DAIR')
 ON CONFLICT (anio, prefijo) DO NOTHING;
 
+INSERT INTO reglamento (id_reglamento, nombre_normativa, sigla, descripcion)
+VALUES (3, 'Reglamento de Carrera Profesional', 'RCP', 'Normativa de carrera profesional docente')
+ON CONFLICT (id_reglamento) DO NOTHING;
+
+INSERT INTO elemento_normativo
+    (id_elemento, id_reglamento, id_elemento_padre, id_nivel_reglamento,
+     numero_etiqueta, contenido_texto, orden, fecha_inicio_vigencia,
+     id_estado_vigencia, id_usuario_registro)
+VALUES
+    (10, 3, NULL, 1, 'I',   'Disposiciones Generales del RCP', 1, '2024-01-01', 1, 1),
+    (11, 3, 10,  2, '1',   'Del Ámbito de Aplicación',        1, '2024-01-01', 1, 1),
+    (12, 3, 11,  3, '1.1', 'Todo docente en categoría MT6 que desee ascender deberá acreditar participación activa en la AIR.', 1, '2024-01-01', 1, 1),
+    (13, 3, 12,  4, 'a)',  'La participación incluye asistencia a sesiones plenarias y comisiones de análisis.', 1, '2024-01-01', 1, 1)
+ON CONFLICT (id_elemento) DO NOTHING;
+
 -- Reiniciar las secuencias después de insertar IDs explícitos:
+
 SELECT setval(pg_get_serial_sequence('catalogo_sector', 'id_sector'), COALESCE(MAX(id_sector), 1)) FROM catalogo_sector;
 SELECT setval(pg_get_serial_sequence('catalogo_puestos', 'id_puesto'), COALESCE(MAX(id_puesto), 1)) FROM catalogo_puestos;
 SELECT setval(pg_get_serial_sequence('catalogo_nivel_reglamento', 'id_nivel_reglamento'), COALESCE(MAX(id_nivel_reglamento), 1)) FROM catalogo_nivel_reglamento;
@@ -3656,8 +3673,6 @@ SELECT setval(pg_get_serial_sequence('asambleista', 'id_asambleista'), COALESCE(
 SELECT setval(pg_get_serial_sequence('sys_usuario', 'id_usuario'), COALESCE(MAX(id_usuario), 1)) FROM sys_usuario;
 SELECT setval(pg_get_serial_sequence('sys_rol', 'id_rol'), COALESCE(MAX(id_rol), 1)) FROM sys_rol;
 SELECT setval(pg_get_serial_sequence('sys_permiso', 'id_permiso'), COALESCE(MAX(id_permiso), 1)) FROM sys_permiso;
-SELECT setval(pg_get_serial_sequence('reglamento', 'id_reglamento'), COALESCE(MAX(id_reglamento), 1)) FROM reglamento;
-SELECT setval(pg_get_serial_sequence('elemento_normativo', 'id_elemento'), COALESCE(MAX(id_elemento), 1)) FROM elemento_normativo;
 SELECT setval(pg_get_serial_sequence('nombramiento', 'id_nombramiento'), COALESCE(MAX(id_nombramiento), 1)) FROM nombramiento;
 SELECT setval(pg_get_serial_sequence('reforma_aplicada', 'id_reforma'), COALESCE(MAX(id_reforma), 1)) FROM reforma_aplicada;
 
@@ -3680,6 +3695,9 @@ SELECT setval(pg_get_serial_sequence('catalogo_origen_propuesta', 'id_origen_pro
 SELECT setval(pg_get_serial_sequence('leyenda_nota_condicional', 'id_leyenda'), COALESCE(MAX(id_leyenda), 1)) FROM leyenda_nota_condicional;
 
 SELECT setval(pg_get_serial_sequence('control_folio', 'id_control'), COALESCE(MAX(id_control), 1)) FROM control_folio;
+
+SELECT setval(pg_get_serial_sequence('reglamento', 'id_reglamento'), COALESCE(MAX(id_reglamento), 1)) FROM reglamento;
+SELECT setval(pg_get_serial_sequence('elemento_normativo', 'id_elemento'), COALESCE(MAX(id_elemento), 1)) FROM elemento_normativo;
 
 -- ===============================
 -- 18. CONSULTAS DE VERIFICACIÓN
@@ -3734,96 +3752,3 @@ ORDER BY u.id_usuario;
 -- Verificación de auditoría.
 SELECT * FROM sys_log_auditoria ORDER BY id_log;
 
-
-
-
--- =====================================================
--- 19. PRUEBAS SOLICITADAS PARA LA PRESENTACIÓN
-
--- (Se ejecuta después del código anterior)
--- =====================================================
-
--- 1) Trigger de Vigencia:
-
--- Ver el estado actual del artículo '1.1' (elemento 3 y 4)
-SELECT
-    id_elemento,
-    numero_etiqueta,
-    contenido_texto,
-    fecha_inicio_vigencia,
-    fecha_fin_vigencia,
-    id_estado_vigencia  -- 1 = Vigente, 2 = Histórico
-FROM elemento_normativo
-WHERE numero_etiqueta = '1.1'
-ORDER BY fecha_inicio_vigencia;
-
--- Insertar una nueva versión vigente del artículo '1.1'
-INSERT INTO elemento_normativo
-(id_reglamento, id_elemento_padre, id_nivel_reglamento, numero_etiqueta,
- contenido_texto, orden, fecha_inicio_vigencia, id_estado_vigencia, id_usuario_registro)
-VALUES
-(1, 2, 3, '1.1',
- 'Texto de la segunda reforma del artículo 1.1.',
- 1, '2026-01-01', 1, 1);
-
--- Ver cómo quedaron las versiones después del trigger
-SELECT
-    id_elemento,
-    numero_etiqueta,
-    contenido_texto,
-    fecha_inicio_vigencia,
-    fecha_fin_vigencia,
-    id_estado_vigencia  -- Elemento 4 ahora debe ser 2 (Histórico)
-FROM elemento_normativo
-WHERE numero_etiqueta = '1.1'
-ORDER BY fecha_inicio_vigencia;
-
-
--- 2) SP de Nombramientros:
-
--- Ver Nombramiento activo de Ana en sector Docente
-SELECT
-    n.id_nombramiento,
-    a.nombre,
-    s.nombre AS sector,
-    n.fecha_inicio,
-    n.fecha_fin,
-    n.estado
-FROM nombramiento n
-JOIN asambleista a ON n.id_asambleista = a.id_asambleista
-JOIN catalogo_sector s ON n.id_sector = s.id_sector
-WHERE n.id_asambleista = 1 AND n.id_sector = 1;
-
--- Debe fallar: traslape de nombramiento activo en el mismo sector
-INSERT INTO nombramiento (id_asambleista, id_sector, id_puesto, fecha_inicio, fecha_fin, estado, id_usuario_registro)
-VALUES (1, 1, 2, '2024-03-01', '2024-06-01', 'Activo', 1);
-
-
--- 3) Audit Log:
-
--- Ver registros actuales
-SELECT
-    id_log,
-    accion,
-    tabla_afectada,
-    detalle
-FROM sys_log_auditoria
-ORDER BY id_log DESC
-LIMIT 5;
-
--- Hacer un UPDATE visible (cambiar correo de Ana)
-UPDATE asambleista
-SET correo_institucional = 'ana.prueba.video@tec.ac.cr'
-WHERE id_asambleista = 1;
-
--- Ver la auditoría nuevamente para visualizar el cambio
-SELECT
-    id_log,
-    id_usuario,
-    accion,
-    tabla_afectada,
-    detalle,
-    fecha_hora
-FROM sys_log_auditoria
-ORDER BY id_log DESC
-LIMIT 5;
