@@ -315,7 +315,7 @@ router.get('/api/normativa/compilado/:id', async (req, res) => {
 });
 
 // =========================================================
-// RUTAS DEL SPRINT 3 - SESIONES (FUNCIONALIDADES AVANZADAS)
+// RUTAS DEL SPRINT 3 - (FUNCIONALIDADES AVANZADAS)
 // =========================================================
 
 // Registrar asistencia a una sesión
@@ -422,6 +422,89 @@ router.get('/api/sesiones/:id/quorum', async (req, res) => {
     } catch (error) {
         console.error('Error verificando quórum:', error);
         res.status(500).json({ success: false, message: 'Error al verificar quórum' });
+    }
+});
+
+// =====================================================
+// RUTAS DE QUÓRUM - ISSUE #11
+// =====================================================
+
+// Verificar quórum de una sesión (GET)
+router.get('/api/sesiones/:id/quorum', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                fn_asistentes_para_quorum($1) AS presentes,
+                fn_quorum_requerido($1) AS requeridos,
+                fn_validar_quorum($1) AS quorum_valido
+        `, [id]);
+
+        const data = result.rows[0];
+        
+        res.json({
+            success: true,
+            data: {
+                presentes: parseInt(data.presentes) || 0,
+                requeridos: parseInt(data.requeridos) || 0,
+                quorum_valido: data.quorum_valido || false,
+                estado: data.quorum_valido ? 'Quórum válido' : 'Quórum insuficiente'
+            }
+        });
+
+    } catch (error) {
+        console.error('Error verificando quórum:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al verificar quórum',
+            error: error.message
+        });
+    }
+});
+
+// Recalcular quórum de una sesión (POST)
+router.post('/api/sesiones/:id/calcular-quorum', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        // Forzar actualización del quórum en la sesión
+        await db.query(
+            `UPDATE sesion 
+             SET total_asambleistas = fn_total_asambleistas_activos(fecha),
+                 quorum_requerido = fn_quorum_requerido($1)
+             WHERE id_sesion = $1`,
+            [id]
+        );
+
+        // Obtener el estado actualizado
+        const result = await db.query(`
+            SELECT 
+                fn_asistentes_para_quorum($1) AS presentes,
+                fn_quorum_requerido($1) AS requeridos,
+                fn_validar_quorum($1) AS quorum_valido
+        `, [id]);
+
+        res.json({
+            success: true,
+            message: 'Quórum recalculado exitosamente',
+            data: {
+                presentes: parseInt(result.rows[0].presentes) || 0,
+                requeridos: parseInt(result.rows[0].requeridos) || 0,
+                quorum_valido: result.rows[0].quorum_valido || false,
+                estado: result.rows[0].quorum_valido ? 'Quórum válido' : 'Quórum insuficiente'
+            }
+        });
+
+    } catch (error) {
+        console.error('Error recalculando quórum:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al recalcular quórum',
+            error: error.message
+        });
     }
 });
 
