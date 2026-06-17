@@ -1,6 +1,6 @@
 -- =====================================================
--- ISSUE #6: Motor de Reglas para Notas Condicionales
--- Sprint 3 - Semana 1 (Solo tablas base)
+-- ISSUE #6: Compilador Normativo y Leyendas Legales
+-- Sprint 3
 -- Motor: PostgreSQL (Supabase)
 -- =====================================================
 
