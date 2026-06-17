@@ -314,4 +314,503 @@ router.get('/api/normativa/compilado/:id', async (req, res) => {
     }
 });
 
+// =========================================================
+// RUTAS DEL SPRINT 3 - SESIONES (FUNCIONALIDADES AVANZADAS)
+// =========================================================
+
+// Registrar asistencia a una sesión
+router.post('/api/sesiones/:id/asistencia', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    const { id_asambleista, id_estado_asistencia, observaciones } = req.body;
+
+    try {
+        // Validar que la sesión existe
+        const sesionCheck = await db.query(
+            'SELECT id_sesion, estado FROM sesion WHERE id_sesion = $1',
+            [id]
+        );
+        
+        if (sesionCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Sesión no encontrada' });
+        }
+
+        if (sesionCheck.rows[0].estado === 'Cancelada') {
+            return res.status(400).json({ success: false, message: 'No se puede registrar asistencia a una sesión cancelada' });
+        }
+
+        // Registrar o actualizar asistencia
+        const result = await db.query(`
+            INSERT INTO asistencia_sesion_plenaria (id_asambleista, id_sesion, id_estado_asistencia, observaciones)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (id_asambleista, id_sesion) 
+            DO UPDATE SET 
+                id_estado_asistencia = EXCLUDED.id_estado_asistencia,
+                observaciones = EXCLUDED.observaciones,
+                hora_registro = CURRENT_TIMESTAMP
+            RETURNING *
+        `, [id_asambleista, id, id_estado_asistencia, observaciones || null]);
+
+        res.json({ 
+            success: true, 
+            message: 'Asistencia registrada exitosamente',
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error registrando asistencia:', error);
+        res.status(500).json({ success: false, message: 'Error al registrar asistencia', error: error.message });
+    }
+});
+
+// Obtener lista de asistencia de una sesión
+router.get('/api/sesiones/:id/asistencia', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                asp.id_asistencia,
+                a.id_asambleista,
+                a.nombre,
+                a.cedula,
+                cea.nombre AS estado_asistencia,
+                asp.hora_registro,
+                asp.observaciones
+            FROM asistencia_sesion_plenaria asp
+            INNER JOIN asambleista a ON asp.id_asambleista = a.id_asambleista
+            INNER JOIN catalogo_estado_asistencia cea ON asp.id_estado_asistencia = cea.id_estado_asistencia
+            WHERE asp.id_sesion = $1
+            ORDER BY a.nombre ASC
+        `, [id]);
+
+        res.json({ success: true, data: result.rows, total: result.rows.length });
+
+    } catch (error) {
+        console.error('Error obteniendo asistencia:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener asistencia' });
+    }
+});
+
+// Verificar quórum de una sesión
+router.get('/api/sesiones/:id/quorum', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        // Obtener datos de quórum usando las funciones de PostgreSQL
+        const result = await db.query(`
+            SELECT 
+                fn_asistentes_para_quorum($1) AS presentes,
+                fn_quorum_requerido($1) AS requeridos,
+                fn_validar_quorum($1) AS quorum_valido
+        `, [id]);
+
+        const data = result.rows[0];
+        
+        res.json({
+            success: true,
+            data: {
+                presentes: parseInt(data.presentes) || 0,
+                requeridos: parseInt(data.requeridos) || 0,
+                quorum_valido: data.quorum_valido || false,
+                estado: data.quorum_valido ? 'Quórum válido' : 'Quórum insuficiente'
+            }
+        });
+
+    } catch (error) {
+        console.error('Error verificando quórum:', error);
+        res.status(500).json({ success: false, message: 'Error al verificar quórum' });
+    }
+});
+
+// Crear una nueva votación
+router.post('/api/votaciones', async (req, res) => {
+    const db = require('../config/db');
+    const { 
+        id_sesion, 
+        id_propuesta, 
+        id_elemento_normativo, 
+        numero_votacion, 
+        tipo_votacion,
+        id_tipo_mayoria_requerida,
+        id_tipo_votacion
+    } = req.body;
+
+    try {
+        // Verificar quórum antes de crear votación
+        const quorumCheck = await db.query(
+            'SELECT fn_validar_quorum($1) AS quorum_valido',
+            [id_sesion]
+        );
+
+        if (!quorumCheck.rows[0]?.quorum_valido) {
+            return res.status(409).json({ 
+                success: false, 
+                message: 'No se puede iniciar votación: quórum insuficiente' 
+            });
+        }
+
+        // Crear votación
+        const result = await db.query(`
+            INSERT INTO votacion (
+                id_sesion, id_propuesta, id_elemento_normativo,
+                numero_votacion, tipo_votacion, resultado
+            ) VALUES ($1, $2, $3, $4, $5, 'Pendiente')
+            RETURNING id_votacion, id_sesion, resultado
+        `, [id_sesion, id_propuesta || null, id_elemento_normativo || null, numero_votacion || null, tipo_votacion || 'Publica']);
+
+        const id_votacion = result.rows[0].id_votacion;
+
+        // Crear registro en resultado_votacion
+        await db.query(`
+            INSERT INTO resultado_votacion (
+                id_votacion, id_tipo_mayoria_requerida, id_tipo_votacion, resultado
+            ) VALUES ($1, $2, $3, 'Pendiente')
+        `, [id_votacion, id_tipo_mayoria_requerida, id_tipo_votacion]);
+
+        // Cambiar estado de la sesión a "En Curso"
+        await db.query(
+            "UPDATE sesion SET estado = 'En Curso' WHERE id_sesion = $1 AND estado != 'En Curso'",
+            [id_sesion]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: 'Votación creada exitosamente',
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error creando votación:', error);
+        res.status(500).json({ success: false, message: 'Error al crear votación', error: error.message });
+    }
+});
+
+// Listar todas las votaciones
+router.get('/api/votaciones', async (req, res) => {
+    const db = require('../config/db');
+    const { id_sesion, resultado } = req.query;
+
+    try {
+        let query = `
+            SELECT 
+                v.id_votacion,
+                v.id_sesion,
+                v.numero_votacion,
+                v.tipo_votacion,
+                v.votos_favor,
+                v.votos_contra,
+                v.votos_abstencion,
+                v.total_votantes,
+                v.resultado,
+                v.fecha_registro,
+                s.numero_sesion,
+                s.fecha AS fecha_sesion,
+                rv.id_tipo_mayoria_requerida,
+                rv.resultado AS resultado_detalle
+            FROM votacion v
+            INNER JOIN sesion s ON v.id_sesion = s.id_sesion
+            LEFT JOIN resultado_votacion rv ON v.id_votacion = rv.id_votacion
+            WHERE 1=1
+        `;
+
+        const params = [];
+        let paramCount = 1;
+
+        if (id_sesion) {
+            query += ` AND v.id_sesion = $${paramCount}`;
+            params.push(id_sesion);
+            paramCount++;
+        }
+
+        if (resultado) {
+            query += ` AND v.resultado = $${paramCount}`;
+            params.push(resultado);
+            paramCount++;
+        }
+
+        query += ` ORDER BY v.fecha_registro DESC`;
+
+        const result = await db.query(query, params);
+        res.json({ success: true, data: result.rows, total: result.rows.length });
+
+    } catch (error) {
+        console.error('Error listando votaciones:', error);
+        res.status(500).json({ success: false, message: 'Error al listar votaciones' });
+    }
+});
+
+// Obtener una votación por ID
+router.get('/api/votaciones/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                v.*,
+                s.numero_sesion,
+                s.fecha AS fecha_sesion,
+                rv.id_tipo_mayoria_requerida,
+                rv.total_presentes,
+                rv.total_votos,
+                rv.porcentaje_aprobacion,
+                rv.fecha_apertura,
+                rv.fecha_cierre,
+                rv.resultado AS resultado_detalle
+            FROM votacion v
+            INNER JOIN sesion s ON v.id_sesion = s.id_sesion
+            LEFT JOIN resultado_votacion rv ON v.id_votacion = rv.id_votacion
+            WHERE v.id_votacion = $1
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Votación no encontrada' });
+        }
+
+        res.json({ success: true, data: result.rows[0] });
+
+    } catch (error) {
+        console.error('Error obteniendo votación:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener votación' });
+    }
+});
+
+// Registrar un voto
+router.post('/api/votaciones/:id/voto', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    const { tipo_voto } = req.body;
+
+    if (!['Favor', 'Contra', 'Abstencion'].includes(tipo_voto)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Tipo de voto inválido. Permitidos: Favor, Contra, Abstencion' 
+        });
+    }
+
+    try {
+        // Verificar que la votación esté pendiente
+        const votacionCheck = await db.query(
+            'SELECT resultado FROM votacion WHERE id_votacion = $1',
+            [id]
+        );
+
+        if (votacionCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Votación no encontrada' });
+        }
+
+        if (votacionCheck.rows[0].resultado !== 'Pendiente') {
+            return res.status(409).json({ 
+                success: false, 
+                message: `La votación ya fue ${votacionCheck.rows[0].resultado.toLowerCase()}` 
+            });
+        }
+
+        // Registrar el voto
+        let campoVoto;
+        switch (tipo_voto) {
+            case 'Favor': campoVoto = 'votos_favor'; break;
+            case 'Contra': campoVoto = 'votos_contra'; break;
+            case 'Abstencion': campoVoto = 'votos_abstencion'; break;
+        }
+
+        const result = await db.query(`
+            UPDATE votacion 
+            SET 
+                ${campoVoto} = ${campoVoto} + 1,
+                total_votantes = total_votantes + 1
+            WHERE id_votacion = $1
+            RETURNING *
+        `, [id]);
+
+        res.json({
+            success: true,
+            message: `Voto "${tipo_voto}" registrado exitosamente`,
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error registrando voto:', error);
+        res.status(500).json({ success: false, message: 'Error al registrar voto' });
+    }
+});
+
+// Finalizar votación
+router.post('/api/votaciones/:id/finalizar', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        // Obtener la votación
+        const votacion = await db.query(
+            'SELECT * FROM votacion WHERE id_votacion = $1',
+            [id]
+        );
+
+        if (votacion.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Votación no encontrada' });
+        }
+
+        if (votacion.rows[0].resultado !== 'Pendiente') {
+            return res.status(409).json({ 
+                success: false, 
+                message: `La votación ya fue ${votacion.rows[0].resultado.toLowerCase()}` 
+            });
+        }
+
+        // Obtener el tipo de mayoría requerida
+        const tipoMayoria = await db.query(
+            'SELECT id_tipo_mayoria_requerida FROM resultado_votacion WHERE id_votacion = $1',
+            [id]
+        );
+
+        // Calcular resultado usando la función de PostgreSQL
+        const calcResult = await db.query(`
+            SELECT fn_calcular_resultado_votacion(
+                $1, $2, 
+                (SELECT nombre FROM catalogo_tipo_mayoria_requerida 
+                 WHERE id_tipo_mayoria_requerida = $3)
+            ) AS resultado
+        `, [
+            votacion.rows[0].votos_favor,
+            votacion.rows[0].votos_contra,
+            tipoMayoria.rows[0]?.id_tipo_mayoria_requerida || 1
+        ]);
+
+        const resultado = calcResult.rows[0].resultado;
+
+        // Actualizar votacion
+        await db.query(
+            'UPDATE votacion SET resultado = $2 WHERE id_votacion = $1',
+            [id, resultado]
+        );
+
+        // Actualizar resultado_votacion
+        const totalVotos = votacion.rows[0].votos_favor + votacion.rows[0].votos_contra + votacion.rows[0].votos_abstencion;
+        const porcentajeAprobacion = totalVotos > 0 
+            ? ((votacion.rows[0].votos_favor / totalVotos) * 100) 
+            : 0;
+
+        await db.query(`
+            UPDATE resultado_votacion 
+            SET 
+                total_votos = $2,
+                votos_favor = $3,
+                votos_contra = $4,
+                abstenciones = $5,
+                porcentaje_aprobacion = $6,
+                resultado = $7,
+                fecha_cierre = CURRENT_TIMESTAMP
+            WHERE id_votacion = $1
+        `, [
+            id,
+            totalVotos,
+            votacion.rows[0].votos_favor,
+            votacion.rows[0].votos_contra,
+            votacion.rows[0].votos_abstencion,
+            porcentajeAprobacion,
+            resultado
+        ]);
+
+        res.json({
+            success: true,
+            message: 'Votación finalizada exitosamente',
+            data: { id_votacion: id, resultado }
+        });
+
+    } catch (error) {
+        console.error('Error finalizando votación:', error);
+        res.status(500).json({ success: false, message: 'Error al finalizar votación' });
+    }
+});
+
+// Obtener resultado de una votación
+router.get('/api/votaciones/:id/resultado', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                rv.*,
+                tm.nombre AS tipo_mayoria,
+                tm.porcentaje_requerido,
+                tv.nombre AS tipo_votacion_nombre
+            FROM resultado_votacion rv
+            LEFT JOIN catalogo_tipo_mayoria_requerida tm ON rv.id_tipo_mayoria_requerida = tm.id_tipo_mayoria_requerida
+            LEFT JOIN catalogo_tipo_votacion tv ON rv.id_tipo_votacion = tv.id_tipo_votacion
+            WHERE rv.id_votacion = $1
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Resultado no encontrado' });
+        }
+
+        res.json({ success: true, data: result.rows[0] });
+
+    } catch (error) {
+        console.error('Error obteniendo resultado:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener resultado' });
+    }
+});
+
+// Verificar si se puede votar en una sesión
+router.get('/api/votaciones/sesion/:id_sesion/puede-votar', async (req, res) => {
+    const db = require('../config/db');
+    const { id_sesion } = req.params;
+
+    try {
+        // Verificar estado de la sesión
+        const sesion = await db.query(
+            'SELECT estado FROM sesion WHERE id_sesion = $1',
+            [id_sesion]
+        );
+
+        if (sesion.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Sesión no encontrada' });
+        }
+
+        if (sesion.rows[0].estado !== 'En Curso') {
+            return res.json({
+                success: true,
+                data: {
+                    puede: false,
+                    motivo: `La sesión está en estado "${sesion.rows[0].estado}". Solo se puede votar en sesiones "En Curso".`
+                }
+            });
+        }
+
+        // Verificar quórum
+        const quorum = await db.query(
+            'SELECT fn_validar_quorum($1) AS quorum_valido',
+            [id_sesion]
+        );
+
+        if (!quorum.rows[0]?.quorum_valido) {
+            return res.json({
+                success: true,
+                data: {
+                    puede: false,
+                    motivo: 'Quórum insuficiente para iniciar la votación'
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                puede: true,
+                motivo: 'OK'
+            }
+        });
+
+    } catch (error) {
+        console.error('Error verificando si puede votar:', error);
+        res.status(500).json({ success: false, message: 'Error al verificar' });
+    }
+});
+
 module.exports = router; 
