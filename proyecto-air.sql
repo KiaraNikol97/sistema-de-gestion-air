@@ -3752,3 +3752,372 @@ ORDER BY u.id_usuario;
 -- Verificación de auditoría.
 SELECT * FROM sys_log_auditoria ORDER BY id_log;
 
+--------------------------------------------------------------------------------
+
+-- =====================================
+-- 19. Pruebas SQL
+-- =====================================
+
+-- === Módulo 1 ===
+
+-- 1.1 Nuevo Asambleísta
+INSERT INTO asambleista (cedula, nombre, correo_institucional)
+VALUES ('1-9999-9999', 'Prueba Uno', 'prueba1@tec.ac.cr');
+
+-- 1.2 Cédula nula - debe fallar
+INSERT INTO asambleista (cedula, nombre)
+VALUES (NULL, 'Prueba Error');
+
+-- 1.2 Nombre nulo - debe fallar
+INSERT INTO asambleista (cedula, nombre)
+VALUES ('2-9999-9999', NULL);
+
+-- 1.3 Cédula duplicada - debe fallar
+INSERT INTO asambleista (cedula, nombre, correo_institucional)
+VALUES ('1-9999-9999', 'Otro', 'otro@tec.ac.cr');
+
+-- 1.4 Nombramiento correcto
+INSERT INTO nombramiento (
+    id_asambleista,
+    id_sector,
+    id_puesto,
+    fecha_inicio,
+    fecha_fin,
+    estado,
+    id_usuario_registro
+)
+VALUES (
+    2,
+    3,
+    1,
+    '2026-01-01',
+    '2026-12-31',
+    'Activo',
+    1
+);
+
+-- 1.5 Traslape - debe fallar
+INSERT INTO nombramiento (
+    id_asambleista,
+    id_sector,
+    id_puesto,
+    fecha_inicio,
+    fecha_fin,
+    estado,
+    id_usuario_registro
+)
+VALUES (
+    2,
+    3,
+    1,
+    '2026-06-01',
+    '2026-12-31',
+    'Activo',
+    1
+);
+
+-- === Módulo 2 ===
+
+-- 2.1 Carga recursiva de reglamento
+INSERT INTO reglamento (
+    id_reglamento,
+    nombre_normativa,
+    sigla,
+    descripcion
+)
+VALUES (
+    100,
+    'Reglamento de Prueba',
+    'RTEST',
+    'Reglamento usado para prueba de árbol'
+);
+
+INSERT INTO elemento_normativo (
+    id_elemento,
+    id_reglamento,
+    id_elemento_padre,
+    id_nivel_reglamento,
+    numero_etiqueta,
+    contenido_texto,
+    orden,
+    fecha_inicio_vigencia,
+    id_estado_vigencia,
+    id_usuario_registro
+)
+VALUES (
+    100,
+    100,
+    NULL,
+    1,
+    'I',
+    'Título I',
+    1,
+    CURRENT_DATE,
+    1,
+    1
+);
+
+INSERT INTO elemento_normativo (
+    id_elemento,
+    id_reglamento,
+    id_elemento_padre,
+    id_nivel_reglamento,
+    numero_etiqueta,
+    contenido_texto,
+    orden,
+    fecha_inicio_vigencia,
+    id_estado_vigencia,
+    id_usuario_registro
+)
+VALUES (
+    101,
+    100,
+    100,
+    3,
+    '1',
+    'Artículo 1',
+    1,
+    CURRENT_DATE,
+    1,
+    1
+);
+
+-- Ver árbol
+SELECT *
+FROM v_arbol_normativo
+WHERE id_reglamento = 100;
+
+-- 2.3 Crear comisión
+INSERT INTO propuesta (
+    id_propuesta,
+    numero_propuesta,
+    titulo,
+    descripcion,
+    id_tipo_propuesta,
+    id_estado_propuesta,
+    id_usuario_registro
+)
+VALUES (
+    100,
+    'AIR-100-2026',
+    'Propuesta de prueba',
+    'Propuesta usada para pruebas',
+    1,
+    1,
+    1
+);
+
+INSERT INTO comision (
+    id_comision,
+    nombre_comision,
+    id_tipo_comision,
+    objeto
+)
+VALUES (
+    100,
+    'Comisión de Prueba',
+    1,
+    'Analizar propuesta de prueba'
+);
+
+INSERT INTO integrante_comision (
+    id_comision,
+    id_asambleista,
+    id_rol_comision,
+    fecha_ingreso_nombramiento
+)
+VALUES (
+    100,
+    1,
+    1,
+    CURRENT_DATE
+);
+
+-- 2.4 Número de propuesta inválido - debe fallar
+INSERT INTO propuesta (
+    numero_propuesta,
+    titulo,
+    id_tipo_propuesta,
+    id_estado_propuesta
+)
+VALUES (
+    'MAL-2026',
+    'Propuesta inválida',
+    1,
+    1
+);
+
+-- === Módulo 3 ===
+
+-- Verificar trigger de quórum
+SELECT tgname
+FROM pg_trigger
+WHERE tgrelid = 'votacion'::regclass;
+
+-- Crear sesión de prueba
+INSERT INTO sesion (
+    id_sesion,
+    id_tipo_modalidad,
+    id_tipo_sesion,
+    numero_sesion,
+    fecha,
+    estado,
+    id_usuario_registro
+)
+VALUES (
+    100,
+    1,
+    1,
+    'SES-100-2026',
+    CURRENT_DATE,
+    'Programada',
+    1
+);
+
+-- 3.1 Quórum insuficiente - debe fallar
+INSERT INTO votacion (
+    id_sesion,
+    id_propuesta,
+    numero_votacion,
+    tipo_votacion
+)
+VALUES (
+    100,
+    100,
+    'VOT-100-2026',
+    'Publica'
+);
+
+-- 3.2 Quórum válido
+INSERT INTO asistencia_sesion_plenaria (
+    id_asambleista,
+    id_sesion,
+    id_estado_asistencia
+)
+VALUES (
+    1,
+    100,
+    1
+);
+
+INSERT INTO votacion (
+    id_votacion,
+    id_sesion,
+    id_propuesta,
+    numero_votacion,
+    tipo_votacion
+)
+VALUES (
+    100,
+    100,
+    100,
+    'VOT-101-2026',
+    'Publica'
+);
+
+-- 3.3 Mayoría calificada 66%
+SELECT fn_calcular_resultado_votacion_detalle(
+    20,
+    10,
+    30,
+    'Calificada'
+) AS resultado_mayoria_calificada;
+
+-- Registrar voto nominal
+INSERT INTO voto_asambleista (
+    id_votacion,
+    id_asambleista,
+    id_tipo_voto
+)
+VALUES (
+    100,
+    1,
+    1
+);
+
+SELECT *
+FROM v_resultado_votacion_detalle
+WHERE id_votacion = 100;
+
+-- === Módulo 4 ===
+
+-- Buscar por nombre
+SELECT *
+FROM asambleista
+WHERE nombre ILIKE '%Ana%';
+
+-- Buscar por cédula
+SELECT *
+FROM asambleista
+WHERE cedula = '1-2345-6789';
+
+-- Vista de certificación
+SELECT *
+FROM v_certificacion_datos_consolidados;
+
+-- === Módulo 5 ===
+
+-- 5.1 Folio + 5.2 Hash
+INSERT INTO certificacion_emitida (
+    id_asambleista,
+    id_usuario_secretaria,
+    contenido_json
+)
+VALUES (
+    1,
+    1,
+    '{"tipo":"certificacion_prueba","asambleista":1}'::jsonb
+);
+
+SELECT
+    id_certificacion,
+    folio_unico,
+    hash_seguridad,
+    LENGTH(hash_seguridad) AS largo_hash
+FROM certificacion_emitida
+ORDER BY id_certificacion DESC;
+
+-- 5.3 No repudio - debe fallar
+UPDATE certificacion_emitida
+SET folio_unico = 'DAIR-999-2026'
+WHERE id_certificacion = (
+    SELECT MAX(id_certificacion)
+    FROM certificacion_emitida
+);
+
+-- 5.3 No repudio DELETE - debe fallar
+DELETE FROM certificacion_emitida
+WHERE id_certificacion = (
+    SELECT MAX(id_certificacion)
+    FROM certificacion_emitida
+);
+
+-- === Módulo 6 ===
+
+-- 6.1 Auditoría
+SELECT *
+FROM sys_log_auditoria
+ORDER BY id_log DESC;
+
+-- 6.2 Anulación con justificación legal
+SELECT fn_anular_certificacion(
+    (
+        SELECT MAX(id_certificacion)
+        FROM certificacion_emitida
+    ),
+    'Documento de prueba anulado con justificación legal',
+    1
+);
+
+SELECT
+    id_certificacion,
+    folio_unico,
+    estado,
+    motivo_anulacion
+FROM certificacion_emitida
+ORDER BY id_certificacion DESC;
+
+-- 6.3 Verificación externa
+SELECT *
+FROM verificacion_externa
+ORDER BY id_verificacion DESC;
