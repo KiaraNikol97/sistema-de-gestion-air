@@ -4057,18 +4057,44 @@ WHERE id_votacion = 100;
 
 -- === Módulo 4 ===
 
--- Buscar por nombre
-SELECT *
-FROM asambleista
-WHERE nombre ILIKE '%Ana%';
+-- 4.1 Búsqueda por nombre
+SELECT * FROM asambleista WHERE nombre ILIKE '%Ana%';
 
--- Buscar por cédula
-SELECT *
-FROM asambleista
-WHERE cedula = '1-2345-6789';
+-- 4.1 Búsqueda por cédula
+SELECT * FROM asambleista WHERE cedula = '1-2345-6789';
 
--- Vista de certificación
-SELECT *
+-- 4.2 Previsualización: datos que alimentan el borrador de certificación
+SELECT
+    a.cedula,
+    a.nombre AS nombre_asambleista,
+    vcd.total_nombramientos,
+    vcd.primer_periodo_inicio,
+    vcd.total_asistencias_plenarias,
+    vcd.total_asistencias_comision,
+    vcd.total_propuestas_como_proponente,
+    vcd.total_comisiones_integradas,
+    vcd.nombramientos,
+    vcd.propuestas,
+    vcd.comisiones
+FROM v_certificacion_datos_consolidados vcd
+JOIN asambleista a ON vcd.id_asambleista = a.id_asambleista
+WHERE a.cedula = '1-2345-6789';
+
+-- 4.3 Vista SQL consolidada que unifica nombramientos, comisiones, propuestas y cálculo de asistencias vía funciones de agregación
+SELECT
+    cedula,
+    nombre_asambleista,
+    total_nombramientos,
+    primer_periodo_inicio,
+    ultimo_periodo_fin,
+    total_asistencias_plenarias,
+    total_asistencias_comision,
+    total_propuestas_como_proponente,
+    total_comisiones_integradas,
+    total_votos_registrados,
+    nombramientos,
+    propuestas,
+    comisiones
 FROM v_certificacion_datos_consolidados;
 
 -- === Módulo 5 ===
