@@ -3755,7 +3755,7 @@ SELECT * FROM sys_log_auditoria ORDER BY id_log;
 --------------------------------------------------------------------------------
 
 -- =====================================
--- 19. Pruebas SQL
+-- 19. PRUEBAS SQL
 -- =====================================
 
 -- === Módulo 1 ===
@@ -3882,10 +3882,20 @@ VALUES (
     1
 );
 
--- Ver árbol
+-- Ver árbol del reglamento de prueba
 SELECT *
 FROM v_arbol_normativo
 WHERE id_reglamento = 100;
+
+-- Ver árbol del RCP con 4 niveles y columna ruta visible
+SELECT
+    profundidad,
+    ruta,
+    nivel,
+    numero_etiqueta,
+    contenido_texto
+FROM obtener_arbol_normativo_vigente(3, CURRENT_DATE)
+ORDER BY ruta;
 
 -- 2.3 Crear comisión
 INSERT INTO propuesta (
@@ -4016,12 +4026,18 @@ VALUES (
 );
 
 -- 3.3 Mayoría calificada 66%
-SELECT fn_calcular_resultado_votacion_detalle(
-    20,
-    10,
-    30,
-    'Calificada'
-) AS resultado_mayoria_calificada;
+
+-- Caso límite (20 de 30 = 66.6%)
+SELECT fn_calcular_resultado_votacion_detalle(20, 10, 30, 'Calificada') AS caso_limite;
+
+-- Aprueba claramente (23 de 30 = 76%)
+SELECT fn_calcular_resultado_votacion_detalle(23, 7, 30, 'Calificada') AS aprueba_calificada;
+
+-- Rechaza claramente (18 de 30 = 60%)
+SELECT fn_calcular_resultado_votacion_detalle(18, 12, 30, 'Calificada') AS rechaza_calificada;
+
+-- Mayoría simple para comparar
+SELECT fn_calcular_resultado_votacion_detalle(16, 14, 30, 'Simple') AS aprueba_simple;
 
 -- Registrar voto nominal
 INSERT INTO voto_asambleista (
@@ -4094,10 +4110,20 @@ WHERE id_certificacion = (
 
 -- === Módulo 6 ===
 
--- 6.1 Auditoría
-SELECT *
-FROM sys_log_auditoria
-ORDER BY id_log DESC;
+-- 6.1 Auditoría forense con campos críticos requeridos
+SELECT
+    id_log,
+    usuario_bd,
+    operacion,
+    tabla_afectada,
+    registro_pk,
+    nivel_riesgo,
+    ip_origen,
+    fecha_hora_servidor,
+    datos_antes,
+    datos_despues
+FROM v_auditoria_forense
+LIMIT 10;
 
 -- 6.2 Anulación con justificación legal
 SELECT fn_anular_certificacion(
@@ -4121,3 +4147,12 @@ ORDER BY id_certificacion DESC;
 SELECT *
 FROM verificacion_externa
 ORDER BY id_verificacion DESC;
+
+-- Simular consulta externa: debe mostrar "Documento inválido: certificación anulada"
+SELECT *
+FROM fn_registrar_verificacion_externa(
+    (SELECT codigo_verificacion
+     FROM verificacion_externa
+     ORDER BY id_verificacion DESC
+     LIMIT 1)
+);
