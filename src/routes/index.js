@@ -896,4 +896,859 @@ router.get('/api/votaciones/sesion/:id_sesion/puede-votar', async (req, res) => 
     }
 });
 
+// =====================================================
+// RUTAS DE CERTIFICACIONES - ISSUE #17
+// =====================================================
+
+const CertificadorController = require('../controllers/CertificadorController');
+const PDFService = require('../services/PDFService');
+
+// =====================================================
+// 1. DATOS CONSOLIDADOS PARA CERTIFICACIONES
+// =====================================================
+
+// Obtener datos consolidados de un asambleísta (para vista previa)
+router.get('/api/certificaciones/datos-consolidados/:id_asambleista', async (req, res) => {
+    const db = require('../config/db');
+    const { id_asambleista } = req.params;
+
+    try {
+        const result = await db.query(
+            'SELECT * FROM v_certificacion_datos_consolidados WHERE id_asambleista = $1',
+            [id_asambleista]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No se encontraron datos del asambleísta'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error en datos-consolidados:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener datos consolidados',
+            error: error.message
+        });
+    }
+});
+
+// =====================================================
+// 2. SOLICITUDES DE CERTIFICACIÓN
+// =====================================================
+
+// Crear solicitud de certificación
+router.post('/api/certificaciones/solicitud', async (req, res) => {
+    const db = require('../config/db');
+    const {
+        id_asambleista,
+        periodo_desde,
+        periodo_hasta,
+        observaciones
+    } = req.body;
+
+    // Usuario de la sesión (si existe)
+    const id_usuario_solicitante = req.session?.userId || null;
+
+    try {
+        if (!id_asambleista) {
+            return res.status(400).json({
+                success: false,
+                message: 'El campo id_asambleista es obligatorio'
+            });
+        }
+
+        const result = await db.query(`
+            INSERT INTO solicitud_certificacion (
+                id_asambleista,
+                periodo_desde,
+                periodo_hasta,
+                observaciones,
+                id_usuario_solicitante,
+                estado
+            ) VALUES ($1, $2, $3, $4, $5, 'Pendiente')
+            RETURNING id_solicitud, fecha_solicitud, estado
+        `, [
+            id_asambleista,
+            periodo_desde || null,
+            periodo_hasta || null,
+            observaciones || null,
+            id_usuario_solicitante || null
+        ]);
+
+        res.status(201).json({
+            success: true,
+            message: 'Solicitud creada exitosamente',
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error creando solicitud:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al crear la solicitud',
+            error: error.message
+        });
+    }
+});
+
+// Listar todas las solicitudes
+router.get('/api/certificaciones/solicitudes', async (req, res) => {
+    const db = require('../config/db');
+    const { id_asambleista, estado } = req.query;
+
+    try {
+        let query = `
+            SELECT 
+                s.id_solicitud,
+                s.id_asambleista,
+                a.nombre AS asambleista_nombre,
+                a.cedula,
+                s.fecha_solicitud,
+                s.periodo_desde,
+                s.periodo_hasta,
+                s.estado,
+                s.observaciones,
+                s.fecha_respuesta,
+                u.username AS solicitante_nombre,
+                s.id_certificacion_generada
+            FROM solicitud_certificacion s
+            INNER JOIN asambleista a ON s.id_asambleista = a.id_asambleista
+            LEFT JOIN sys_usuario u ON s.id_usuario_solicitante = u.id_usuario
+            WHERE 1=1
+        `;
+
+        const params = [];
+        let paramCount = 1;
+
+        if (id_asambleista) {
+            query += ` AND s.id_asambleista = $${paramCount}`;
+            params.push(id_asambleista);
+            paramCount++;
+        }
+
+        if (estado) {
+            query += ` AND s.estado = $${paramCount}`;
+            params.push(estado);
+            paramCount++;
+        }
+
+        query += ` ORDER BY s.fecha_solicitud DESC`;
+
+        const result = await db.query(query, params);
+
+        res.json({
+            success: true,
+            data: result.rows,
+            total: result.rows.length
+        });
+
+    } catch (error) {
+        console.error('Error listando solicitudes:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al listar solicitudes',
+            error: error.message
+        });
+    }
+});
+
+// Obtener una solicitud por ID
+router.get('/api/certificaciones/solicitud/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                s.*,
+                a.nombre AS asambleista_nombre,
+                a.cedula,
+                u.username AS solicitante_nombre
+            FROM solicitud_certificacion s
+            INNER JOIN asambleista a ON s.id_asambleista = a.id_asambleista
+            LEFT JOIN sys_usuario u ON s.id_usuario_solicitante = u.id_usuario
+            WHERE s.id_solicitud = $1
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Solicitud no encontrada'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo solicitud:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener la solicitud',
+            error: error.message
+        });
+    }
+});
+
+// Actualizar estado de una solicitud
+router.put('/api/certificaciones/solicitud/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    const { estado, id_certificacion_generada } = req.body;
+
+    const estadosValidos = ['Pendiente', 'En Proceso', 'Completada', 'Rechazada'];
+
+    try {
+        if (!estado) {
+            return res.status(400).json({
+                success: false,
+                message: 'El campo estado es obligatorio'
+            });
+        }
+
+        if (!estadosValidos.includes(estado)) {
+            return res.status(400).json({
+                success: false,
+                message: `Estado inválido. Permitidos: ${estadosValidos.join(', ')}`
+            });
+        }
+
+        const result = await db.query(`
+            UPDATE solicitud_certificacion 
+            SET 
+                estado = $2,
+                fecha_respuesta = CASE WHEN $2 IN ('Completada', 'Rechazada') 
+                    THEN CURRENT_DATE 
+                    ELSE fecha_respuesta 
+                END,
+                id_certificacion_generada = COALESCE($3, id_certificacion_generada)
+            WHERE id_solicitud = $1
+            RETURNING *
+        `, [id, estado, id_certificacion_generada || null]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Solicitud no encontrada'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Solicitud actualizada a estado "${estado}"`,
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error actualizando solicitud:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al actualizar la solicitud',
+            error: error.message
+        });
+    }
+});
+
+// =====================================================
+// 3. GENERACIÓN DE CERTIFICACIONES
+// =====================================================
+
+// Generar una nueva certificación
+router.post('/api/certificaciones/generar', async (req, res) => {
+    const db = require('../config/db');
+    const CryptoService = require('../services/CryptoService');
+    const PDFService = require('../services/PDFService');
+    
+    const {
+        id_solicitud,
+        id_asambleista,
+        periodo_desde,
+        periodo_hasta,
+        id_certificacion_sustituye
+    } = req.body;
+
+    const id_usuario_secretaria = req.session?.userId || 1;
+
+    try {
+        if (!id_asambleista) {
+            return res.status(400).json({
+                success: false,
+                message: 'El campo id_asambleista es obligatorio'
+            });
+        }
+
+        // 1. Obtener datos consolidados del asambleísta
+        const datosResult = await db.query(
+            'SELECT * FROM v_certificacion_datos_consolidados WHERE id_asambleista = $1',
+            [id_asambleista]
+        );
+
+        if (datosResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No se encontraron datos del asambleísta'
+            });
+        }
+
+        const datos = datosResult.rows[0];
+
+        // 2. Construir contenido JSON
+        const contenido_json = {
+            asambleista: {
+                id: datos.id_asambleista,
+                cedula: datos.cedula,
+                nombre: datos.nombre_asambleista,
+                correo: datos.correo_institucional
+            },
+            periodo: {
+                desde: periodo_desde || datos.primer_periodo_inicio,
+                hasta: periodo_hasta || datos.ultimo_periodo_fin
+            },
+            nombramientos: datos.nombramientos || [],
+            propuestas: datos.propuestas || [],
+            comisiones: datos.comisiones || [],
+            total_nombramientos: datos.total_nombramientos || 0,
+            total_asistencias_plenarias: datos.total_asistencias_plenarias || 0,
+            total_propuestas: datos.total_propuestas_como_proponente || 0,
+            fecha_generacion: new Date().toISOString(),
+            tipo: 'certificacion_air'
+        };
+
+        // 3. Generar hash
+        const hash = CryptoService.generarHashFromObject(contenido_json);
+
+        // 4. Insertar la certificación
+        const certificadoResult = await db.query(`
+            INSERT INTO certificacion_emitida (
+                id_solicitud,
+                id_asambleista,
+                contenido_json,
+                hash_seguridad,
+                id_usuario_secretaria,
+                id_certificacion_sustituye,
+                estado,
+                fecha_emision
+            ) VALUES ($1, $2, $3, $4, $5, $6, 'Activa', CURRENT_DATE)
+            RETURNING id_certificacion, folio_unico, hash_seguridad, fecha_emision
+        `, [
+            id_solicitud || null,
+            id_asambleista,
+            contenido_json,
+            hash,
+            id_usuario_secretaria,
+            id_certificacion_sustituye || null
+        ]);
+
+        const certificado = certificadoResult.rows[0];
+
+        // 5. Generar PDF
+        const datosPDF = {
+            ...certificado,
+            asambleista: datos,
+            contenido: contenido_json,
+            codigo_verificacion: `VER-${certificado.folio_unico}-${hash.substring(0, 10)}`
+        };
+
+        const pdfBuffer = await PDFService.generarDesdePlantilla(datosPDF);
+        await PDFService.guardarPDF(pdfBuffer, certificado.folio_unico);
+
+        // 6. Actualizar la solicitud si existe
+        if (id_solicitud) {
+            await db.query(`
+                UPDATE solicitud_certificacion 
+                SET estado = 'Completada', 
+                    id_certificacion_generada = $2
+                WHERE id_solicitud = $1
+            `, [id_solicitud, certificado.id_certificacion]);
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Certificación generada exitosamente',
+            data: {
+                ...certificado,
+                codigo_verificacion: datosPDF.codigo_verificacion,
+                url_pdf: `/certificados/${certificado.folio_unico}.pdf`
+            }
+        });
+
+    } catch (error) {
+        console.error('Error generando certificación:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al generar la certificación',
+            error: error.message
+        });
+    }
+});
+
+// Obtener certificaciones de un asambleísta
+router.get('/api/certificaciones/asambleista/:id_asambleista', async (req, res) => {
+    const db = require('../config/db');
+    const { id_asambleista } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                c.id_certificacion,
+                c.folio_unico,
+                c.hash_seguridad,
+                c.fecha_emision,
+                c.hora_emision,
+                c.estado,
+                c.url_pdf,
+                a.nombre AS asambleista_nombre,
+                a.cedula,
+                u.username AS secretaria_nombre,
+                v.codigo_verificacion
+            FROM certificacion_emitida c
+            INNER JOIN asambleista a ON c.id_asambleista = a.id_asambleista
+            LEFT JOIN sys_usuario u ON c.id_usuario_secretaria = u.id_usuario
+            LEFT JOIN verificacion_externa v ON c.id_certificacion = v.id_certificacion
+            WHERE c.id_asambleista = $1
+              AND c.estado != 'Anulada'
+            ORDER BY c.fecha_emision DESC
+        `, [id_asambleista]);
+
+        res.json({
+            success: true,
+            data: result.rows,
+            total: result.rows.length
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo certificaciones:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener certificaciones',
+            error: error.message
+        });
+    }
+});
+
+// Obtener una certificación por folio
+router.get('/api/certificaciones/folio/:folio', async (req, res) => {
+    const db = require('../config/db');
+    const { folio } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                c.*,
+                a.nombre AS asambleista_nombre,
+                a.cedula,
+                a.correo_institucional,
+                u.username AS secretaria_nombre,
+                v.codigo_verificacion,
+                v.url_verificacion,
+                v.veces_verificado,
+                v.ultima_verificacion,
+                v.activo AS verificacion_activa
+            FROM certificacion_emitida c
+            INNER JOIN asambleista a ON c.id_asambleista = a.id_asambleista
+            LEFT JOIN sys_usuario u ON c.id_usuario_secretaria = u.id_usuario
+            LEFT JOIN verificacion_externa v ON c.id_certificacion = v.id_certificacion
+            WHERE c.folio_unico = $1
+        `, [folio]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Certificación no encontrada'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo certificación por folio:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener la certificación',
+            error: error.message
+        });
+    }
+});
+
+// Obtener una certificación por ID
+router.get('/api/certificaciones/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                c.*,
+                a.nombre AS asambleista_nombre,
+                a.cedula,
+                a.correo_institucional,
+                u.username AS secretaria_nombre,
+                v.codigo_verificacion,
+                v.veces_verificado,
+                v.ultima_verificacion,
+                v.activo AS verificacion_activa,
+                s.estado AS solicitud_estado,
+                s.fecha_solicitud,
+                s.periodo_desde,
+                s.periodo_hasta
+            FROM certificacion_emitida c
+            INNER JOIN asambleista a ON c.id_asambleista = a.id_asambleista
+            LEFT JOIN sys_usuario u ON c.id_usuario_secretaria = u.id_usuario
+            LEFT JOIN verificacion_externa v ON c.id_certificacion = v.id_certificacion
+            LEFT JOIN solicitud_certificacion s ON c.id_solicitud = s.id_solicitud
+            WHERE c.id_certificacion = $1
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Certificación no encontrada'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo certificación:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener la certificación',
+            error: error.message
+        });
+    }
+});
+
+// =====================================================
+// 4. PREVISUALIZACIÓN DE CERTIFICACIONES
+// =====================================================
+
+// Previsualizar certificado (HTML)
+router.get('/api/certificaciones/preview/:id_asambleista', async (req, res) => {
+    const db = require('../config/db');
+    const PDFService = require('../services/PDFService');
+    const { id_asambleista } = req.params;
+
+    try {
+        // Obtener datos consolidados
+        const datosResult = await db.query(
+            'SELECT * FROM v_certificacion_datos_consolidados WHERE id_asambleista = $1',
+            [id_asambleista]
+        );
+
+        if (datosResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No se encontraron datos del asambleísta'
+            });
+        }
+
+        const datos = datosResult.rows[0];
+
+        // Construir datos para previsualización
+        const datosPreview = {
+            asambleista: {
+                nombre: datos.nombre_asambleista,
+                cedula: datos.cedula,
+                correo: datos.correo_institucional
+            },
+            folio_unico: 'PREVIEW-XXXX',
+            fecha_emision: new Date().toISOString(),
+            contenido: {
+                periodo: {
+                    desde: datos.primer_periodo_inicio,
+                    hasta: datos.ultimo_periodo_fin
+                },
+                total_nombramientos: datos.total_nombramientos || 0,
+                total_asistencias_plenarias: datos.total_asistencias_plenarias || 0,
+                total_propuestas: datos.total_propuestas_como_proponente || 0
+            },
+            hash_seguridad: 'PREVIEW_HASH',
+            codigo_verificacion: 'PREVIEW-CODE'
+        };
+
+        // Generar HTML de previsualización
+        const htmlPreview = PDFService.generarHTMLPreview(datosPreview);
+
+        res.json({
+            success: true,
+            data: {
+                html: htmlPreview,
+                asambleista: datos
+            }
+        });
+
+    } catch (error) {
+        console.error('Error en previsualización:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al generar previsualización',
+            error: error.message
+        });
+    }
+});
+
+// =====================================================
+// 5. VERIFICACIÓN DE CERTIFICACIONES
+// =====================================================
+
+// Verificar certificación por código
+router.get('/api/certificaciones/verificar/:codigo', async (req, res) => {
+    const db = require('../config/db');
+    const { codigo } = req.params;
+
+    try {
+        // Buscar la certificación por código de verificación
+        const result = await db.query(`
+            SELECT 
+                c.folio_unico,
+                c.estado,
+                c.hash_seguridad,
+                c.fecha_emision,
+                a.nombre AS asambleista_nombre,
+                a.cedula,
+                v.veces_verificado,
+                v.ultima_verificacion,
+                v.activo AS verificacion_activa
+            FROM verificacion_externa v
+            JOIN certificacion_emitida c ON v.id_certificacion = c.id_certificacion
+            JOIN asambleista a ON c.id_asambleista = a.id_asambleista
+            WHERE v.codigo_verificacion = $1
+        `, [codigo]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Código de verificación inválido'
+            });
+        }
+
+        const data = result.rows[0];
+
+        // Registrar la verificación
+        await db.query(
+            `SELECT fn_registrar_verificacion_externa($1)`,
+            [codigo]
+        );
+
+        // Deterinar estado público
+        let estadoPublico;
+        if (data.estado === 'Activa' && data.verificacion_activa) {
+            estadoPublico = 'Documento auténtico y vigente';
+        } else if (data.estado === 'Anulada') {
+            estadoPublico = 'Documento inválido: certificación anulada';
+        } else {
+            estadoPublico = 'Documento no vigente o suspendido';
+        }
+
+        res.json({
+            success: true,
+            data: {
+                folio: data.folio_unico,
+                estado: estadoPublico,
+                fecha_emision: data.fecha_emision,
+                nombre_asambleista: data.nombre_asambleista,
+                cedula: data.cedula,
+                veces_verificado: (data.veces_verificado || 0) + 1,
+                ultima_verificacion: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        console.error('Error verificando certificación:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al verificar la certificación',
+            error: error.message
+        });
+    }
+});
+
+// Obtener código de verificación de una certificación
+router.get('/api/certificaciones/:id/codigo-verificacion', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                c.folio_unico,
+                v.codigo_verificacion,
+                v.url_verificacion
+            FROM certificacion_emitida c
+            LEFT JOIN verificacion_externa v ON c.id_certificacion = v.id_certificacion
+            WHERE c.id_certificacion = $1
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Certificación no encontrada'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                folio: result.rows[0].folio_unico,
+                codigo_verificacion: result.rows[0].codigo_verificacion,
+                url_verificacion: result.rows[0].url_verificacion || `/verificar/${result.rows[0].codigo_verificacion}`
+            }
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo código de verificación:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener código de verificación',
+            error: error.message
+        });
+    }
+});
+
+// =====================================================
+// 6. ANULACIÓN DE CERTIFICACIONES
+// =====================================================
+
+// Anular una certificación
+router.post('/api/certificaciones/:id/anular', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    const { motivo, id_certificacion_sustituta } = req.body;
+
+    const id_usuario_anulacion = req.session?.userId || 1;
+
+    try {
+        if (!motivo || motivo.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'El campo motivo es obligatorio para anular una certificación'
+            });
+        }
+
+        // Verificar que la certificación existe y está activa
+        const checkResult = await db.query(
+            'SELECT estado FROM certificacion_emitida WHERE id_certificacion = $1',
+            [id]
+        );
+
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Certificación no encontrada'
+            });
+        }
+
+        if (checkResult.rows[0].estado !== 'Activa') {
+            return res.status(409).json({
+                success: false,
+                message: `La certificación está en estado "${checkResult.rows[0].estado}". Solo se pueden anular certificaciones activas.`
+            });
+        }
+
+        // Ejecutar función de anulación
+        await db.query(
+            `SELECT fn_anular_certificacion($1, $2, $3, $4)`,
+            [id, motivo, id_usuario_anulacion, id_certificacion_sustituta || null]
+        );
+
+        res.json({
+            success: true,
+            message: 'Certificación anulada exitosamente',
+            data: {
+                id_certificacion: id,
+                motivo: motivo,
+                fecha_anulacion: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        console.error('Error anulando certificación:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al anular la certificación',
+            error: error.message
+        });
+    }
+});
+
+// =====================================================
+// 7. REPORTES Y ESTADÍSTICAS
+// =====================================================
+
+// Reporte mensual de certificaciones
+router.get('/api/certificaciones/reporte/mensual', async (req, res) => {
+    const db = require('../config/db');
+
+    try {
+        const result = await db.query(
+            'SELECT * FROM v_reporte_certificaciones_mensual ORDER BY anio DESC, mes DESC'
+        );
+
+        res.json({
+            success: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Error en reporte mensual:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener reporte mensual',
+            error: error.message
+        });
+    }
+});
+
+// Estadísticas generales de certificaciones
+router.get('/api/certificaciones/estadisticas', async (req, res) => {
+    const db = require('../config/db');
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                COUNT(*) AS total_certificaciones,
+                COUNT(CASE WHEN estado = 'Activa' THEN 1 END) AS activas,
+                COUNT(CASE WHEN estado = 'Anulada' THEN 1 END) AS anuladas,
+                COUNT(CASE WHEN estado = 'Suspendida' THEN 1 END) AS suspendidas,
+                COUNT(DISTINCT id_asambleista) AS asambleistas_distintos,
+                MAX(fecha_emision) AS ultima_emision,
+                MIN(fecha_emision) AS primera_emision
+            FROM certificacion_emitida
+        `);
+
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error en estadísticas:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener estadísticas',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router; 
+
+
+
+
