@@ -8,40 +8,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #f5f7fb; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        .quorum-card {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 25px;
-        }
-        
+        .quorum-card { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border-radius: 16px; padding: 25px; margin-bottom: 25px; }
         .quorum-number { font-size: 3rem; font-weight: bold; margin: 0; }
         .quorum-status { font-size: 1.2rem; padding: 8px 20px; border-radius: 30px; display: inline-block; }
         .status-ok { background-color: #28a745; color: white; }
         .status-error { background-color: #dc3545; color: white; }
-        
         .asistencia-table th { background-color: #f8f9fc; }
         .presente-check { width: 20px; height: 20px; cursor: pointer; }
         .loading { display: none; text-align: center; padding: 50px; }
-        
-        .btn-primary-custom {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 10px 25px;
-            color: white;
-        }
-        
-        .page-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            border-radius: 16px;
-            padding: 20px 25px;
-            margin-bottom: 25px;
-        }
-        
+        .btn-primary-custom { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none; border-radius: 10px; padding: 10px 25px; color: white; }
+        .page-header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border-radius: 16px; padding: 20px 25px; margin-bottom: 25px; }
         .error-msg { background-color: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 20px; display: none; }
     </style>
 </head>
@@ -63,37 +39,28 @@
 
         <div id="error-msg" class="error-msg"></div>
 
-        <!-- Selector de Sesión -->
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-8">
-                        <label class="form-label fw-bold">
-                            <i class="fas fa-calendar-alt me-1"></i> Seleccionar Sesión
-                        </label>
+                        <label class="form-label fw-bold"><i class="fas fa-calendar-alt me-1"></i> Seleccionar Sesión</label>
                         <select id="sesion-select" class="form-select">
                             <option value="">-- Cargando sesiones... --</option>
                         </select>
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
-                        <button id="btn-cargar-sesion" class="btn btn-primary me-2">
-                            <i class="fas fa-search me-1"></i> Cargar
-                        </button>
-                        <button id="btn-limpiar" class="btn btn-secondary">
-                            <i class="fas fa-eraser me-1"></i> Limpiar
-                        </button>
+                        <button id="btn-cargar-sesion" class="btn btn-primary me-2"><i class="fas fa-search me-1"></i> Cargar</button>
+                        <button id="btn-limpiar" class="btn btn-secondary"><i class="fas fa-eraser me-1"></i> Limpiar</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Loading -->
         <div id="loading" class="loading">
             <div class="spinner-border text-primary" role="status"></div>
             <p class="mt-2">Cargando datos...</p>
         </div>
 
-        <!-- Información de la Sesión -->
         <div id="info-sesion" style="display: none;">
             <div class="quorum-card">
                 <div class="row align-items-center">
@@ -103,13 +70,12 @@
                         <small id="sesion-fecha">-</small>
                     </div>
                     <div class="col-md-6 text-md-end">
-                        <small>Quórum requerido (mitad+1)</small>
+                        <small>Quórum requerido</small>
                         <p class="quorum-number" id="quorum-requerido">0</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Estado del Quórum -->
             <div class="card mb-4">
                 <div class="card-body text-center">
                     <h5><i class="fas fa-chart-simple me-2"></i>Estado Actual del Quórum</h5>
@@ -136,7 +102,6 @@
                 </div>
             </div>
 
-            <!-- Tabla de Asistencia -->
             <div class="card">
                 <div class="card-header bg-white fw-bold">
                     <i class="fas fa-clipboard-list me-1"></i> Registro de Asistencia
@@ -148,17 +113,10 @@
                     <div class="table-responsive">
                         <table class="table table-hover asistencia-table mb-0">
                             <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Cédula</th>
-                                    <th>Nombre</th>
-                                    <th>Sector</th>
-                                    <th class="text-center">Presente</th>
-                                    <th>Hora registro</th>
-                                </tr>
+                                <tr><th>ID</th><th>Cédula</th><th>Nombre</th><th>Sector</th><th class="text-center">Presente</th><th>Hora registro</th></tr>
                             </thead>
                             <tbody id="asistencia-tbody">
-                                <tr><td colspan="6" class="text-center text-muted py-4">Seleccione una sesión para ver los asambleístas</td</th>
+                                <tr><td colspan="6" class="text-center text-muted py-4">Seleccione una sesión para ver los asambleístas</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -221,7 +179,7 @@
     
     <script>
         // =====================================================
-        // VERSIÓN CON DATOS REALES DESDE LA BASE DE DATOS
+        // SESIONES CONECTADAS A LA BASE DE DATOS
         // =====================================================
         
         let currentSesionId = null;
@@ -233,7 +191,6 @@
                 .then(res => res.text())
                 .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
                 .catch(err => console.error('Error:', err));
-            
             fetch('/views/shared/footer.view.html')
                 .then(res => res.text())
                 .then(data => document.getElementById('footer-placeholder').innerHTML = data)
@@ -247,15 +204,17 @@
             setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
-        // Cargar lista de sesiones desde la BD
+        function showSuccess(message) {
+            alert( message);
+        }
+
+        // Cargar sesiones desde la BD
         async function cargarSesiones() {
             const select = document.getElementById('sesion-select');
             select.innerHTML = '<option value="">-- Cargando sesiones... --</option>';
-            
             try {
                 const response = await fetch('/api/sesiones');
                 const result = await response.json();
-                
                 if (result.success && result.data && result.data.length > 0) {
                     select.innerHTML = '<option value="">-- Seleccionar sesión --</option>';
                     result.data.forEach(s => {
@@ -263,43 +222,31 @@
                     });
                 } else {
                     select.innerHTML = '<option value="">-- No hay sesiones registradas --</option>';
-                    // Datos de ejemplo si no hay sesiones
-                    select.innerHTML += '<option value="demo">Sesión de prueba (Demo)</option>';
                 }
             } catch (error) {
                 console.error('Error cargando sesiones:', error);
                 select.innerHTML = '<option value="">-- Error al cargar sesiones --</option>';
-                select.innerHTML += '<option value="demo">Sesión de prueba (Demo)</option>';
             }
         }
 
-        // Cargar lista de asambleístas desde la BD
+        // Cargar asambleístas desde la BD
         async function cargarAsambleistasReales() {
             try {
                 const response = await fetch('/api/asambleistas');
                 const result = await response.json();
-                
                 if (result.success && result.data) {
                     asambleistasReales = result.data.map(a => ({
                         id: a.id_asambleista,
                         cedula: a.cedula,
                         nombre: a.nombre,
-                        sector: 'Por definir' // Si no tienes sector en la tabla
+                        sector: 'Por definir'
                     }));
                 } else {
-                    // Datos de ejemplo si no hay asambleístas
-                    asambleistasReales = [
-                        { id: 1, cedula: "1-2345-6789", nombre: "Ana María Rodríguez Mora", sector: "Docencia" },
-                        { id: 2, cedula: "2-3456-7890", nombre: "Carlos Jiménez Solano", sector: "Administración" },
-                        { id: 3, cedula: "3-4567-8901", nombre: "María Fernanda Vargas", sector: "Estudiantil" }
-                    ];
+                    asambleistasReales = [];
                 }
             } catch (error) {
                 console.error('Error cargando asambleístas:', error);
-                asambleistasReales = [
-                    { id: 1, cedula: "1-2345-6789", nombre: "Ana María Rodríguez Mora", sector: "Docencia" },
-                    { id: 2, cedula: "2-3456-7890", nombre: "Carlos Jiménez Solano", sector: "Administración" }
-                ];
+                asambleistasReales = [];
             }
         }
 
@@ -310,23 +257,10 @@
             currentSesionId = sesionId;
             document.getElementById('loading').style.display = 'block';
             document.getElementById('info-sesion').style.display = 'none';
-            
-            // Si es demo, usar datos de ejemplo
-            if (sesionId === 'demo') {
-                setTimeout(() => {
-                    document.getElementById('sesion-nombre').innerText = 'Sesión de Prueba (Demo)';
-                    document.getElementById('sesion-fecha').innerHTML = `<i class="far fa-calendar-alt me-1"></i> ${new Date().toLocaleDateString()}`;
-                    document.getElementById('quorum-requerido').innerText = Math.ceil(asambleistasReales.length / 2) + 1;
-                    document.getElementById('total-count').innerText = asambleistasReales.length;
-                    cargarTablaAsistencia();
-                    actualizarQuorum();
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('info-sesion').style.display = 'block';
-                }, 500);
-                return;
-            }
+            asistenciaActual = {};
             
             try {
+                // Obtener datos de la sesión
                 const response = await fetch(`/api/sesiones/${sesionId}`);
                 const result = await response.json();
                 
@@ -334,8 +268,12 @@
                     const sesion = result.data;
                     document.getElementById('sesion-nombre').innerText = sesion.numero_sesion;
                     document.getElementById('sesion-fecha').innerHTML = `<i class="far fa-calendar-alt me-1"></i> ${new Date(sesion.fecha).toLocaleDateString()}`;
-                    document.getElementById('quorum-requerido').innerText = sesion.quorum_requerido;
+                    document.getElementById('quorum-requerido').innerText = sesion.quorum_requerido || Math.ceil(asambleistasReales.length / 2) + 1;
                     document.getElementById('total-count').innerText = asambleistasReales.length;
+                    
+                    // Cargar asistencias existentes
+                    await cargarAsistenciasExistentes(sesionId);
+                    
                     cargarTablaAsistencia();
                     actualizarQuorum();
                 } else {
@@ -350,9 +288,30 @@
             }
         }
 
+        async function cargarAsistenciasExistentes(sesionId) {
+            try {
+                const response = await fetch(`/api/sesiones/${sesionId}/asistencia`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    result.data.forEach(a => {
+                        if (a.estado_asistencia === 'Presente' || a.estado_asistencia === 'Retardo') {
+                            asistenciaActual[a.id_asambleista] = true;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando asistencias:', error);
+            }
+        }
+
         function cargarTablaAsistencia() {
             const tbody = document.getElementById('asistencia-tbody');
             tbody.innerHTML = '';
+            
+            if (asambleistasReales.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No hay asambleístas registrados</td></tr>';
+                return;
+            }
             
             asambleistasReales.forEach(a => {
                 const isPresent = asistenciaActual[a.id] || false;
@@ -367,11 +326,7 @@
                 const check = row.querySelector('.presente-check');
                 check.addEventListener('change', (e) => {
                     asistenciaActual[a.id] = e.target.checked;
-                    if (e.target.checked) {
-                        row.cells[5].innerText = new Date().toLocaleTimeString();
-                    } else {
-                        row.cells[5].innerText = '-';
-                    }
+                    row.cells[5].innerText = e.target.checked ? new Date().toLocaleTimeString() : '-';
                     actualizarQuorum();
                 });
             });
@@ -380,7 +335,7 @@
         function actualizarQuorum() {
             const presentes = Object.values(asistenciaActual).filter(v => v === true).length;
             const total = asambleistasReales.length;
-            const quorumRequerido = Math.ceil(total / 2) + 1;
+            const quorumRequerido = parseInt(document.getElementById('quorum-requerido').innerText) || Math.ceil(total / 2) + 1;
             
             document.getElementById('presentes-count').innerText = presentes;
             
@@ -393,16 +348,41 @@
             }
         }
 
-        function guardarAsistencia() {
+        async function guardarAsistencia() {
+            if (!currentSesionId) {
+                showError('No hay sesión seleccionada');
+                return;
+            }
+
             const presentes = Object.values(asistenciaActual).filter(v => v === true).length;
             const total = asambleistasReales.length;
-            const quorumRequerido = Math.ceil(total / 2) + 1;
+            const quorumRequerido = parseInt(document.getElementById('quorum-requerido').innerText) || Math.ceil(total / 2) + 1;
             
-            if (presentes >= quorumRequerido) {
-                alert(` Asistencia guardada exitosamente.\nPresentes: ${presentes}/${total}\nQuórum: Aprobado`);
-                // Aquí se podría guardar en la BD con un POST
-            } else {
-                alert(` Advertencia: Quórum insuficiente.\nPresentes: ${presentes}\nRequerido: ${quorumRequerido}\nLa sesión no puede iniciar.`);
+            try {
+                // Enviar cada asistencia a la BD
+                for (const a of asambleistasReales) {
+                    const isPresent = asistenciaActual[a.id] || false;
+                    const estadoId = isPresent ? 1 : 2; // 1=Presente, 2=Ausente
+                    
+                    await fetch(`/api/sesiones/${currentSesionId}/asistencia`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id_asambleista: a.id,
+                            id_estado_asistencia: estadoId,
+                            observaciones: isPresent ? 'Presente' : 'Ausente'
+                        })
+                    });
+                }
+                
+                if (presentes >= quorumRequerido) {
+                    showSuccess(`Asistencia guardada exitosamente.\nPresentes: ${presentes}/${total}\nQuórum: Aprobado`);
+                } else {
+                    showSuccess(`Asistencia guardada.\nPresentes: ${presentes}/${total}\nQuórum: Insuficiente`);
+                }
+            } catch (error) {
+                console.error('Error guardando asistencia:', error);
+                showError('Error al guardar la asistencia');
             }
         }
 
@@ -414,24 +394,43 @@
             actualizarQuorum();
         }
 
-        function crearSesion() {
+        async function crearSesion() {
             const tipo = document.getElementById('tipo_sesion').value;
             const numero = document.getElementById('numero_sesion').value;
             const fecha = document.getElementById('fecha_sesion').value;
+            const quorum = document.getElementById('quorum_porcentaje').value;
             
             if (!numero || !fecha) {
                 alert('Complete todos los campos');
                 return;
             }
             
-            alert(` Sesión creada: ${tipo} ${numero} - ${fecha}\nAhora puede registrar la asistencia.`);
-            
-            // Recargar lista de sesiones
-            cargarSesiones();
-            
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaSesion'));
-            modal.hide();
-            document.getElementById('formNuevaSesion').reset();
+            try {
+                const response = await fetch('/api/sesiones/crear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        numero_sesion: numero,
+                        tipo_sesion: tipo,
+                        fecha: fecha,
+                        quorum_requerido: Math.ceil(asambleistasReales.length * (quorum / 100))
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(` Sesión creada: ${tipo} ${numero} - ${fecha}`);
+                    await cargarSesiones();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaSesion'));
+                    modal.hide();
+                    document.getElementById('formNuevaSesion').reset();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error creando sesión:', error);
+                alert('Error de conexión');
+            }
         }
 
         // Inicializar
@@ -441,7 +440,6 @@
             await cargarSesiones();
         }
         
-        // Event listeners
         document.getElementById('btn-cargar-sesion').addEventListener('click', cargarSesion);
         document.getElementById('btn-guardar-asistencia').addEventListener('click', guardarAsistencia);
         document.getElementById('btn-marcar-todos').addEventListener('click', marcarTodosPresentes);
