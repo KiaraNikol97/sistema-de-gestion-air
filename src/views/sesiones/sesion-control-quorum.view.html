@@ -149,6 +149,14 @@
                             </select>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Modalidad:</label>
+                            <select class="form-select" id="modalidad_sesion">
+                                <option value="1">Presencial</option>
+                                <option value="2">Virtual</option>
+                                <option value="3">Mixta</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Número de Sesión:</label>
                             <input type="text" class="form-control" id="numero_sesion" placeholder="Ej: AIR-01-2025" required>
                         </div>
@@ -399,27 +407,39 @@
             const numero = document.getElementById('numero_sesion').value;
             const fecha = document.getElementById('fecha_sesion').value;
             const quorum = document.getElementById('quorum_porcentaje').value;
-            
+    
             if (!numero || !fecha) {
-                alert('Complete todos los campos');
-                return;
+               alert('Complete todos los campos');
+            return;
             }
-            
+    
+    // Mapear tipo de sesión a ID (ajusta según tus catálogos)
+            const tipoSesionMap = {
+                'Ordinaria': 1,
+                'Extraordinaria': 2,
+                'Solemne': 3
+            };
+    
+    // Modalidad por defecto: Presencial (ID 1)
+            const id_tipo_modalidad = 1;
+            const id_tipo_sesion = tipoSesionMap[tipo] || 1;
+    
             try {
                 const response = await fetch('/api/sesiones/crear', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        id_tipo_modalidad: id_tipo_modalidad,
+                        id_tipo_sesion: id_tipo_sesion,
                         numero_sesion: numero,
-                        tipo_sesion: tipo,
                         fecha: fecha,
                         quorum_requerido: Math.ceil(asambleistasReales.length * (quorum / 100))
                     })
                 });
-                
+        
                 const result = await response.json();
                 if (result.success) {
-                    alert(` Sesión creada: ${tipo} ${numero} - ${fecha}`);
+                    alert(`✅ Sesión creada: ${tipo} ${numero} - ${fecha}`);
                     await cargarSesiones();
                     const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaSesion'));
                     modal.hide();

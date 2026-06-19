@@ -147,24 +147,72 @@ router.get('/api/sesiones/:id', async (req, res) => {
 });
 
 // Crear nueva sesión
+// Crear nueva sesión (versión con IDs)
 router.post('/api/sesiones/crear', async (req, res) => {
     const db = require('../config/db');
-    const { numero_sesion, tipo_sesion, fecha, quorum_requerido } = req.body;
-    
+    const { 
+        id_tipo_modalidad,
+        id_tipo_sesion,
+        numero_sesion,
+        fecha,
+        hora_inicio,
+        hora_fin,
+        link_acta,
+        quorum_requerido
+    } = req.body;
+
+    const id_usuario_registro = req.session?.userId || 1;
+
+    // Validar campos obligatorios
+    if (!id_tipo_modalidad || !id_tipo_sesion || !numero_sesion || !fecha) {
+        return res.status(400).json({
+            success: false,
+            message: 'Faltan campos obligatorios: id_tipo_modalidad, id_tipo_sesion, numero_sesion, fecha'
+        });
+    }
+
     try {
         const result = await db.query(`
-            INSERT INTO sesion (numero_sesion, tipo_sesion, fecha, quorum_requerido)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO sesion (
+                id_tipo_modalidad,
+                id_tipo_sesion,
+                numero_sesion,
+                fecha,
+                hora_inicio,
+                hora_fin,
+                link_acta,
+                quorum_requerido,
+                estado,
+                id_usuario_registro
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Programada', $9)
             RETURNING id_sesion
-        `, [numero_sesion, tipo_sesion, fecha, quorum_requerido]);
-        
-        res.json({ success: true, data: { id: result.rows[0].id_sesion }, message: 'Sesión creada exitosamente' });
+        `, [
+            id_tipo_modalidad,
+            id_tipo_sesion,
+            numero_sesion,
+            fecha,
+            hora_inicio || null,
+            hora_fin || null,
+            link_acta || null,
+            quorum_requerido || null,
+            id_usuario_registro
+        ]);
+
+        res.status(201).json({
+            success: true,
+            message: 'Sesión creada exitosamente',
+            data: { id: result.rows[0].id_sesion }
+        });
+
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ success: false, message: 'Error al crear sesión' });
+        console.error('Error en crearSesion:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al crear la sesión',
+            error: error.message
+        });
     }
 });
-
 // =====================================================
 // RUTAS DE BITÁCORA (Issue #13)
 // =====================================================
