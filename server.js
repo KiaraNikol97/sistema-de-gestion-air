@@ -114,6 +114,18 @@ app.get('/bitacora', (req, res) => {
         res.status(403).send('Acceso denegado');
     }
 });
+// Módulo de Comisiones
+app.get('/comisiones', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src/views/comisiones/comisiones-lista.view.html'));
+});
+
+app.get('/comisiones/registro', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src/views/comisiones/comisiones-registro.view.html'));
+});
+
+app.get('/comisiones/editar/:id', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src/views/comisiones/comisiones-registro.view.html'));
+});
 
 
 // API ROUTES (importadas desde routes/)
