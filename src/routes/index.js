@@ -49,7 +49,6 @@ router.put('/api/nombramientos/:id/finalizar', nombramientoController.finalizarN
 router.get('/api/catalogos/sectores', async (req, res) => {
     const db = require('../config/db');
     try {
-        // Verificar conexión primero
         const testQuery = await db.query('SELECT NOW()');
         console.log('✅ Conexión a BD activa');
         
@@ -65,9 +64,8 @@ router.get('/api/catalogos/sectores', async (req, res) => {
         res.json({ success: true, data: result.rows });
     } catch (error) {
         console.error('❌ Error en /api/catalogos/sectores:', error.message);
-        // En caso de error, devolver datos de ejemplo para que la vista funcione
         res.json({ 
-            success: true,  // Importante: poner true para que la vista no falle
+            success: true,
             data: [
                 { id_sector: 1, nombre: 'Docencia' },
                 { id_sector: 2, nombre: 'Administración' },
@@ -92,7 +90,6 @@ router.get('/api/catalogos/puestos', async (req, res) => {
         res.json({ success: true, data: result.rows });
     } catch (error) {
         console.error('❌ Error en /api/catalogos/puestos:', error.message);
-        // Datos de ejemplo para que la vista funcione
         res.json({ 
             success: true,
             data: [
@@ -103,11 +100,11 @@ router.get('/api/catalogos/puestos', async (req, res) => {
         });
     }
 });
+
 // =====================================================
 // RUTAS DE SESIONES
 // =====================================================
 
-// Listar todas las sesiones
 router.get('/api/sesiones', async (req, res) => {
     const db = require('../config/db');
     try {
@@ -119,12 +116,10 @@ router.get('/api/sesiones', async (req, res) => {
         res.json({ success: true, data: result.rows });
     } catch (error) {
         console.error('Error cargando sesiones:', error);
-        // Si la tabla no existe, devolver array vacío
         res.json({ success: true, data: [] });
     }
 });
 
-// Obtener una sesión por ID
 router.get('/api/sesiones/:id', async (req, res) => {
     const db = require('../config/db');
     const { id } = req.params;
@@ -146,8 +141,6 @@ router.get('/api/sesiones/:id', async (req, res) => {
     }
 });
 
-// Crear nueva sesión
-// Crear nueva sesión (versión con IDs)
 router.post('/api/sesiones/crear', async (req, res) => {
     const db = require('../config/db');
     const { 
@@ -163,7 +156,6 @@ router.post('/api/sesiones/crear', async (req, res) => {
 
     const id_usuario_registro = req.session?.userId || 1;
 
-    // Validar campos obligatorios
     if (!id_tipo_modalidad || !id_tipo_sesion || !numero_sesion || !fecha) {
         return res.status(400).json({
             success: false,
@@ -213,6 +205,7 @@ router.post('/api/sesiones/crear', async (req, res) => {
         });
     }
 });
+
 // =====================================================
 // RUTAS DE BITÁCORA (Issue #13)
 // =====================================================
@@ -221,7 +214,6 @@ router.get('/api/bitacora', async (req, res) => {
     const db = require('../config/db');
     
     try {
-        // Consulta simple sin filtros complejos
         const query = `
             SELECT 
                 l.id_log, 
@@ -239,7 +231,6 @@ router.get('/api/bitacora', async (req, res) => {
         
         const result = await db.query(query);
         
-        // Si no hay datos, devolver array vacío
         res.json({ 
             success: true, 
             data: result.rows || [],
@@ -248,7 +239,6 @@ router.get('/api/bitacora', async (req, res) => {
         
     } catch (error) {
         console.error('Error en bitácora:', error);
-        // En caso de error, devolver array vacío en lugar de error 500
         res.json({ 
             success: true, 
             data: [],
@@ -260,8 +250,10 @@ router.get('/api/bitacora', async (req, res) => {
 // =====================================================
 // RUTAS DE NORMATIVA
 // =====================================================
+
 router.get('/api/normativa/reglamentos', normativaController.getReglamentos.bind(normativaController));
 router.get('/api/normativa/arbol', normativaController.getArbol.bind(normativaController));
+
 router.get('/api/normativa/articulo/:id', async (req, res) => {
     const db = require('../config/db');
     const { id } = req.params;
@@ -302,6 +294,7 @@ router.get('/api/normativa/articulo/:id', async (req, res) => {
         res.status(500).json({ success: false, message: 'Error al cargar el artículo' });
     }
 });
+
 router.get('/api/normativa/compilado/:id', async (req, res) => {
     const db = require('../config/db');
     const { id } = req.params;
@@ -313,7 +306,6 @@ router.get('/api/normativa/compilado/:id', async (req, res) => {
     const fechaStr = fechaConsulta.toISOString().split('T')[0];
     
     try {
-        // Obtener datos del reglamento
         const reglamentoResult = await db.query(`
             SELECT id_reglamento, nombre_normativa as titulo, sigla 
             FROM reglamento 
@@ -324,7 +316,6 @@ router.get('/api/normativa/compilado/:id', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Reglamento no encontrado' });
         }
         
-        // Obtener artículos vigentes en la fecha consultada
         const articulosResult = await db.query(`
             SELECT 
                 e.id_elemento as id,
@@ -362,6 +353,213 @@ router.get('/api/normativa/compilado/:id', async (req, res) => {
     }
 });
 
+// =====================================================
+// RUTAS DE NORMATIVA - CREAR Y EDITAR (ISSUE #10)
+// =====================================================
+
+// Crear un nuevo elemento normativo
+router.post('/api/normativa/elemento', async (req, res) => {
+    const db = require('../config/db');
+    const { 
+        id_reglamento,
+        id_elemento_padre,
+        id_nivel_reglamento,
+        numero_etiqueta,
+        contenido_texto,
+        titulo,
+        orden,
+        fecha_inicio_vigencia,
+        id_estado_vigencia,
+        id_usuario_registro
+    } = req.body;
+
+    try {
+        if (!id_reglamento || !id_nivel_reglamento || !numero_etiqueta || !contenido_texto) {
+            return res.status(400).json({
+                success: false,
+                message: 'Faltan campos obligatorios: id_reglamento, id_nivel_reglamento, numero_etiqueta, contenido_texto'
+            });
+        }
+
+        const result = await db.query(`
+            INSERT INTO elemento_normativo (
+                id_reglamento,
+                id_elemento_padre,
+                id_nivel_reglamento,
+                numero_etiqueta,
+                contenido_texto,
+                orden,
+                fecha_inicio_vigencia,
+                id_estado_vigencia,
+                id_usuario_registro
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id_elemento
+        `, [
+            id_reglamento,
+            id_elemento_padre || null,
+            id_nivel_reglamento,
+            numero_etiqueta,
+            contenido_texto,
+            orden || 1,
+            fecha_inicio_vigencia || new Date().toISOString().split('T')[0],
+            id_estado_vigencia || 1,
+            id_usuario_registro || 1
+        ]);
+
+        res.status(201).json({
+            success: true,
+            message: 'Elemento creado exitosamente',
+            data: { id: result.rows[0].id_elemento }
+        });
+
+    } catch (error) {
+        console.error('Error en POST /api/normativa/elemento:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al crear el elemento',
+            error: error.message
+        });
+    }
+});
+
+// Actualizar un elemento normativo
+router.put('/api/normativa/elemento/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    const { 
+        numero_etiqueta, 
+        contenido_texto, 
+        titulo,
+        fecha_inicio_vigencia,
+        id_estado_vigencia,
+        id_elemento_padre
+    } = req.body;
+
+    try {
+        const check = await db.query(
+            'SELECT id_elemento FROM elemento_normativo WHERE id_elemento = $1',
+            [id]
+        );
+        
+        if (check.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Elemento no encontrado' });
+        }
+
+        let updates = [];
+        let params = [];
+        let i = 1;
+
+        if (numero_etiqueta) {
+            updates.push(`numero_etiqueta = $${i++}`);
+            params.push(numero_etiqueta);
+        }
+        if (contenido_texto) {
+            updates.push(`contenido_texto = $${i++}`);
+            params.push(contenido_texto);
+        }
+        if (fecha_inicio_vigencia) {
+            updates.push(`fecha_inicio_vigencia = $${i++}`);
+            params.push(fecha_inicio_vigencia);
+        }
+        if (id_estado_vigencia) {
+            updates.push(`id_estado_vigencia = $${i++}`);
+            params.push(id_estado_vigencia);
+        }
+        if (id_elemento_padre !== undefined) {
+            updates.push(`id_elemento_padre = $${i++}`);
+            params.push(id_elemento_padre || null);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ success: false, message: 'No hay campos para actualizar' });
+        }
+
+        params.push(id);
+        const query = `UPDATE elemento_normativo SET ${updates.join(', ')} WHERE id_elemento = $${i}`;
+        
+        await db.query(query, params);
+
+        res.json({ success: true, message: 'Elemento actualizado exitosamente' });
+
+    } catch (error) {
+        console.error('Error en PUT /api/normativa/elemento/:id:', error);
+        res.status(500).json({ success: false, message: 'Error al actualizar el elemento', error: error.message });
+    }
+});
+
+// Publicar nueva versión de un elemento normativo
+router.post('/api/normativa/version', async (req, res) => {
+    const db = require('../config/db');
+    const { id_elemento, texto_nuevo, fecha_inicio, acuerdo } = req.body;
+
+    if (!id_elemento || !texto_nuevo || !fecha_inicio) {
+        return res.status(400).json({
+            success: false,
+            message: 'Faltan campos obligatorios: id_elemento, texto_nuevo, fecha_inicio'
+        });
+    }
+
+    try {
+        const elementoResult = await db.query(
+            'SELECT * FROM elemento_normativo WHERE id_elemento = $1',
+            [id_elemento]
+        );
+
+        if (elementoResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Elemento no encontrado' });
+        }
+
+        const elemento = elementoResult.rows[0];
+
+        // Marcar la versión actual como histórica
+        await db.query(
+            `UPDATE elemento_normativo 
+             SET id_estado_vigencia = 2, fecha_fin_vigencia = $1
+             WHERE id_elemento = $2`,
+            [fecha_inicio, id_elemento]
+        );
+
+        // Crear la nueva versión
+        const nuevoId = await db.query(`
+            INSERT INTO elemento_normativo (
+                id_reglamento,
+                id_elemento_padre,
+                id_nivel_reglamento,
+                numero_etiqueta,
+                contenido_texto,
+                orden,
+                fecha_inicio_vigencia,
+                id_estado_vigencia,
+                id_usuario_registro
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8)
+            RETURNING id_elemento
+        `, [
+            elemento.id_reglamento,
+            elemento.id_elemento_padre,
+            elemento.id_nivel_reglamento,
+            elemento.numero_etiqueta,
+            texto_nuevo,
+            elemento.orden,
+            fecha_inicio,
+            elemento.id_usuario_registro || 1
+        ]);
+
+        res.json({
+            success: true,
+            message: 'Nueva versión publicada exitosamente',
+            data: { id: nuevoId.rows[0].id_elemento }
+        });
+
+    } catch (error) {
+        console.error('Error en POST /api/normativa/version:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al publicar la nueva versión',
+            error: error.message
+        });
+    }
+});
+
 // =========================================================
 // RUTAS DEL SPRINT 3 - (FUNCIONALIDADES AVANZADAS)
 // =========================================================
@@ -373,7 +571,6 @@ router.post('/api/sesiones/:id/asistencia', async (req, res) => {
     const { id_asambleista, id_estado_asistencia, observaciones } = req.body;
 
     try {
-        // Validar que la sesión existe
         const sesionCheck = await db.query(
             'SELECT id_sesion, estado FROM sesion WHERE id_sesion = $1',
             [id]
@@ -387,7 +584,6 @@ router.post('/api/sesiones/:id/asistencia', async (req, res) => {
             return res.status(400).json({ success: false, message: 'No se puede registrar asistencia a una sesión cancelada' });
         }
 
-        // Registrar o actualizar asistencia
         const result = await db.query(`
             INSERT INTO asistencia_sesion_plenaria (id_asambleista, id_sesion, id_estado_asistencia, observaciones)
             VALUES ($1, $2, $3, $4)
@@ -447,7 +643,6 @@ router.get('/api/sesiones/:id/quorum', async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Obtener datos de quórum usando las funciones de PostgreSQL
         const result = await db.query(`
             SELECT 
                 fn_asistentes_para_quorum($1) AS presentes,
@@ -518,7 +713,6 @@ router.post('/api/sesiones/:id/calcular-quorum', async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Forzar actualización del quórum en la sesión
         await db.query(
             `UPDATE sesion 
              SET total_asambleistas = fn_total_asambleistas_activos(fecha),
@@ -527,7 +721,6 @@ router.post('/api/sesiones/:id/calcular-quorum', async (req, res) => {
             [id]
         );
 
-        // Obtener el estado actualizado
         const result = await db.query(`
             SELECT 
                 fn_asistentes_para_quorum($1) AS presentes,
@@ -570,7 +763,6 @@ router.post('/api/votaciones', async (req, res) => {
     } = req.body;
 
     try {
-        // Verificar quórum antes de crear votación
         const quorumCheck = await db.query(
             'SELECT fn_validar_quorum($1) AS quorum_valido',
             [id_sesion]
@@ -583,7 +775,6 @@ router.post('/api/votaciones', async (req, res) => {
             });
         }
 
-        // Crear votación
         const result = await db.query(`
             INSERT INTO votacion (
                 id_sesion, id_propuesta, id_elemento_normativo,
@@ -594,14 +785,12 @@ router.post('/api/votaciones', async (req, res) => {
 
         const id_votacion = result.rows[0].id_votacion;
 
-        // Crear registro en resultado_votacion
         await db.query(`
             INSERT INTO resultado_votacion (
                 id_votacion, id_tipo_mayoria_requerida, id_tipo_votacion, resultado
             ) VALUES ($1, $2, $3, 'Pendiente')
         `, [id_votacion, id_tipo_mayoria_requerida, id_tipo_votacion]);
 
-        // Cambiar estado de la sesión a "En Curso"
         await db.query(
             "UPDATE sesion SET estado = 'En Curso' WHERE id_sesion = $1 AND estado != 'En Curso'",
             [id_sesion]
@@ -723,7 +912,6 @@ router.post('/api/votaciones/:id/voto', async (req, res) => {
     }
 
     try {
-        // Verificar que la votación esté pendiente
         const votacionCheck = await db.query(
             'SELECT resultado FROM votacion WHERE id_votacion = $1',
             [id]
@@ -740,7 +928,6 @@ router.post('/api/votaciones/:id/voto', async (req, res) => {
             });
         }
 
-        // Registrar el voto
         let campoVoto;
         switch (tipo_voto) {
             case 'Favor': campoVoto = 'votos_favor'; break;
@@ -775,7 +962,6 @@ router.post('/api/votaciones/:id/finalizar', async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Obtener la votación
         const votacion = await db.query(
             'SELECT * FROM votacion WHERE id_votacion = $1',
             [id]
@@ -792,13 +978,11 @@ router.post('/api/votaciones/:id/finalizar', async (req, res) => {
             });
         }
 
-        // Obtener el tipo de mayoría requerida
         const tipoMayoria = await db.query(
             'SELECT id_tipo_mayoria_requerida FROM resultado_votacion WHERE id_votacion = $1',
             [id]
         );
 
-        // Calcular resultado usando la función de PostgreSQL
         const calcResult = await db.query(`
             SELECT fn_calcular_resultado_votacion(
                 $1, $2, 
@@ -813,13 +997,11 @@ router.post('/api/votaciones/:id/finalizar', async (req, res) => {
 
         const resultado = calcResult.rows[0].resultado;
 
-        // Actualizar votacion
         await db.query(
             'UPDATE votacion SET resultado = $2 WHERE id_votacion = $1',
             [id, resultado]
         );
 
-        // Actualizar resultado_votacion
         const totalVotos = votacion.rows[0].votos_favor + votacion.rows[0].votos_contra + votacion.rows[0].votos_abstencion;
         const porcentajeAprobacion = totalVotos > 0 
             ? ((votacion.rows[0].votos_favor / totalVotos) * 100) 
@@ -894,7 +1076,6 @@ router.get('/api/votaciones/sesion/:id_sesion/puede-votar', async (req, res) => 
     const { id_sesion } = req.params;
 
     try {
-        // Verificar estado de la sesión
         const sesion = await db.query(
             'SELECT estado FROM sesion WHERE id_sesion = $1',
             [id_sesion]
@@ -914,7 +1095,6 @@ router.get('/api/votaciones/sesion/:id_sesion/puede-votar', async (req, res) => 
             });
         }
 
-        // Verificar quórum
         const quorum = await db.query(
             'SELECT fn_validar_quorum($1) AS quorum_valido',
             [id_sesion]
@@ -955,7 +1135,6 @@ const PDFService = require('../services/PDFService');
 // 1. DATOS CONSOLIDADOS PARA CERTIFICACIONES
 // =====================================================
 
-// Obtener datos consolidados de un asambleísta (para vista previa)
 router.get('/api/certificaciones/datos-consolidados/:id_asambleista', async (req, res) => {
     const db = require('../config/db');
     const { id_asambleista } = req.params;
@@ -992,7 +1171,6 @@ router.get('/api/certificaciones/datos-consolidados/:id_asambleista', async (req
 // 2. SOLICITUDES DE CERTIFICACIÓN
 // =====================================================
 
-// Crear solicitud de certificación
 router.post('/api/certificaciones/solicitud', async (req, res) => {
     const db = require('../config/db');
     const {
@@ -1002,7 +1180,6 @@ router.post('/api/certificaciones/solicitud', async (req, res) => {
         observaciones
     } = req.body;
 
-    // Usuario de la sesión (si existe)
     const id_usuario_solicitante = req.session?.userId || null;
 
     try {
@@ -1047,7 +1224,6 @@ router.post('/api/certificaciones/solicitud', async (req, res) => {
     }
 });
 
-// Listar todas las solicitudes
 router.get('/api/certificaciones/solicitudes', async (req, res) => {
     const db = require('../config/db');
     const { id_asambleista, estado } = req.query;
@@ -1108,7 +1284,6 @@ router.get('/api/certificaciones/solicitudes', async (req, res) => {
     }
 });
 
-// Obtener una solicitud por ID
 router.get('/api/certificaciones/solicitud/:id', async (req, res) => {
     const db = require('../config/db');
     const { id } = req.params;
@@ -1148,7 +1323,6 @@ router.get('/api/certificaciones/solicitud/:id', async (req, res) => {
     }
 });
 
-// Actualizar estado de una solicitud
 router.put('/api/certificaciones/solicitud/:id', async (req, res) => {
     const db = require('../config/db');
     const { id } = req.params;
@@ -1211,7 +1385,6 @@ router.put('/api/certificaciones/solicitud/:id', async (req, res) => {
 // 3. GENERACIÓN DE CERTIFICACIONES
 // =====================================================
 
-// Generar una nueva certificación
 router.post('/api/certificaciones/generar', async (req, res) => {
     const db = require('../config/db');
     const CryptoService = require('../services/CryptoService');
@@ -1235,7 +1408,6 @@ router.post('/api/certificaciones/generar', async (req, res) => {
             });
         }
 
-        // 1. Obtener datos consolidados del asambleísta
         const datosResult = await db.query(
             'SELECT * FROM v_certificacion_datos_consolidados WHERE id_asambleista = $1',
             [id_asambleista]
@@ -1250,7 +1422,6 @@ router.post('/api/certificaciones/generar', async (req, res) => {
 
         const datos = datosResult.rows[0];
 
-        // 2. Construir contenido JSON
         const contenido_json = {
             asambleista: {
                 id: datos.id_asambleista,
@@ -1272,10 +1443,8 @@ router.post('/api/certificaciones/generar', async (req, res) => {
             tipo: 'certificacion_air'
         };
 
-        // 3. Generar hash
         const hash = CryptoService.generarHashFromObject(contenido_json);
 
-        // 4. Insertar la certificación
         const certificadoResult = await db.query(`
             INSERT INTO certificacion_emitida (
                 id_solicitud,
@@ -1299,7 +1468,6 @@ router.post('/api/certificaciones/generar', async (req, res) => {
 
         const certificado = certificadoResult.rows[0];
 
-        // 5. Generar PDF
         const datosPDF = {
             ...certificado,
             asambleista: datos,
@@ -1310,7 +1478,6 @@ router.post('/api/certificaciones/generar', async (req, res) => {
         const pdfBuffer = await PDFService.generarDesdePlantilla(datosPDF);
         await PDFService.guardarPDF(pdfBuffer, certificado.folio_unico);
 
-        // 6. Actualizar la solicitud si existe
         if (id_solicitud) {
             await db.query(`
                 UPDATE solicitud_certificacion 
@@ -1340,7 +1507,6 @@ router.post('/api/certificaciones/generar', async (req, res) => {
     }
 });
 
-// Obtener certificaciones de un asambleísta
 router.get('/api/certificaciones/asambleista/:id_asambleista', async (req, res) => {
     const db = require('../config/db');
     const { id_asambleista } = req.params;
@@ -1384,7 +1550,6 @@ router.get('/api/certificaciones/asambleista/:id_asambleista', async (req, res) 
     }
 });
 
-// Obtener una certificación por folio
 router.get('/api/certificaciones/folio/:folio', async (req, res) => {
     const db = require('../config/db');
     const { folio } = req.params;
@@ -1416,10 +1581,7 @@ router.get('/api/certificaciones/folio/:folio', async (req, res) => {
             });
         }
 
-        res.json({
-            success: true,
-            data: result.rows[0]
-        });
+        res.json({ success: true, data: result.rows[0] });
 
     } catch (error) {
         console.error('Error obteniendo certificación por folio:', error);
@@ -1431,7 +1593,6 @@ router.get('/api/certificaciones/folio/:folio', async (req, res) => {
     }
 });
 
-// Obtener una certificación por ID
 router.get('/api/certificaciones/:id', async (req, res) => {
     const db = require('../config/db');
     const { id } = req.params;
@@ -1486,14 +1647,12 @@ router.get('/api/certificaciones/:id', async (req, res) => {
 // 4. PREVISUALIZACIÓN DE CERTIFICACIONES
 // =====================================================
 
-// Previsualizar certificado (HTML)
 router.get('/api/certificaciones/preview/:id_asambleista', async (req, res) => {
     const db = require('../config/db');
     const PDFService = require('../services/PDFService');
     const { id_asambleista } = req.params;
 
     try {
-        // Obtener datos consolidados
         const datosResult = await db.query(
             'SELECT * FROM v_certificacion_datos_consolidados WHERE id_asambleista = $1',
             [id_asambleista]
@@ -1508,7 +1667,6 @@ router.get('/api/certificaciones/preview/:id_asambleista', async (req, res) => {
 
         const datos = datosResult.rows[0];
 
-        // Construir datos para previsualización
         const datosPreview = {
             asambleista: {
                 nombre: datos.nombre_asambleista,
@@ -1530,7 +1688,6 @@ router.get('/api/certificaciones/preview/:id_asambleista', async (req, res) => {
             codigo_verificacion: 'PREVIEW-CODE'
         };
 
-        // Generar HTML de previsualización
         const htmlPreview = PDFService.generarHTMLPreview(datosPreview);
 
         res.json({
@@ -1555,13 +1712,11 @@ router.get('/api/certificaciones/preview/:id_asambleista', async (req, res) => {
 // 5. VERIFICACIÓN DE CERTIFICACIONES
 // =====================================================
 
-// Verificar certificación por código
 router.get('/api/certificaciones/verificar/:codigo', async (req, res) => {
     const db = require('../config/db');
     const { codigo } = req.params;
 
     try {
-        // Buscar la certificación por código de verificación
         const result = await db.query(`
             SELECT 
                 c.folio_unico,
@@ -1588,13 +1743,11 @@ router.get('/api/certificaciones/verificar/:codigo', async (req, res) => {
 
         const data = result.rows[0];
 
-        // Registrar la verificación
         await db.query(
             `SELECT fn_registrar_verificacion_externa($1)`,
             [codigo]
         );
 
-        // Deterinar estado público
         let estadoPublico;
         if (data.estado === 'Activa' && data.verificacion_activa) {
             estadoPublico = 'Documento auténtico y vigente';
@@ -1627,7 +1780,6 @@ router.get('/api/certificaciones/verificar/:codigo', async (req, res) => {
     }
 });
 
-// Obtener código de verificación de una certificación
 router.get('/api/certificaciones/:id/codigo-verificacion', async (req, res) => {
     const db = require('../config/db');
     const { id } = req.params;
@@ -1673,7 +1825,6 @@ router.get('/api/certificaciones/:id/codigo-verificacion', async (req, res) => {
 // 6. ANULACIÓN DE CERTIFICACIONES
 // =====================================================
 
-// Anular una certificación
 router.post('/api/certificaciones/:id/anular', async (req, res) => {
     const db = require('../config/db');
     const { id } = req.params;
@@ -1689,7 +1840,6 @@ router.post('/api/certificaciones/:id/anular', async (req, res) => {
             });
         }
 
-        // Verificar que la certificación existe y está activa
         const checkResult = await db.query(
             'SELECT estado FROM certificacion_emitida WHERE id_certificacion = $1',
             [id]
@@ -1709,7 +1859,6 @@ router.post('/api/certificaciones/:id/anular', async (req, res) => {
             });
         }
 
-        // Ejecutar función de anulación
         await db.query(
             `SELECT fn_anular_certificacion($1, $2, $3, $4)`,
             [id, motivo, id_usuario_anulacion, id_certificacion_sustituta || null]
@@ -1739,7 +1888,6 @@ router.post('/api/certificaciones/:id/anular', async (req, res) => {
 // 7. REPORTES Y ESTADÍSTICAS
 // =====================================================
 
-// Reporte mensual de certificaciones
 router.get('/api/certificaciones/reporte/mensual', async (req, res) => {
     const db = require('../config/db');
 
@@ -1763,7 +1911,6 @@ router.get('/api/certificaciones/reporte/mensual', async (req, res) => {
     }
 });
 
-// Estadísticas generales de certificaciones
 router.get('/api/certificaciones/estadisticas', async (req, res) => {
     const db = require('../config/db');
 
@@ -1795,8 +1942,4 @@ router.get('/api/certificaciones/estadisticas', async (req, res) => {
     }
 });
 
-module.exports = router; 
-
-
-
-
+module.exports = router;

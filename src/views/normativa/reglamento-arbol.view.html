@@ -282,7 +282,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Crear nuevo elemento normativo</h5>
+                    <h5 class="modal-title" id="modalNuevoElementoTitulo"><i class="fas fa-plus-circle me-2"></i>Crear nuevo elemento normativo</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -339,7 +339,7 @@
 
                         <div class="modal-footer px-0 pb-0">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary" onclick="guardarNuevoElemento()">Crear elemento</button>
+                            <button type="submit" class="btn btn-primary" id="btn-guardar-elemento" onclick="guardarNuevoElemento()">Crear elemento</button>
                         </div>
                     </form>
                 </div>
@@ -418,7 +418,6 @@
                     userRole = data.data.rol;
                     puedeEditar = (userRole === 'Administrador' || userRole === 'Secretaria_AIR');
                     
-                    // Mostrar/ocultar botón "Nuevo" según el rol
                     const btnNuevo = document.getElementById('btn-nuevo-elemento');
                     if (btnNuevo) {
                         btnNuevo.style.display = puedeEditar ? 'inline-block' : 'none';
@@ -460,7 +459,6 @@
             document.getElementById('navbar-placeholder').innerHTML = navbarHtml;
             document.getElementById('footer-placeholder').innerHTML = footerHtml;
             
-            // Mostrar/ocultar bitácora según rol
             if (puedeEditar) {
                 const menuBitacora = document.getElementById('menuBitacora');
                 if (menuBitacora) menuBitacora.style.display = 'block';
@@ -566,7 +564,6 @@
                 '<span class="badge-vigente">VIGENTE</span>' : 
                 '<span class="badge-historico">HISTÓRICO</span>';
             
-            // Mostrar botones SOLO si el usuario puede editar
             let botonesHtml = '';
             if (puedeEditar) {
                 botonesHtml = `
@@ -608,6 +605,9 @@
                         <button class="btn btn-warning" onclick='abrirModalNuevaVersion(${id}, "${numero}", "${titulo.replace(/"/g, '&quot;')}")'>
                             <i class="fas fa-code-branch me-1"></i> Publicar nueva versión
                         </button>
+                        <button class="btn btn-outline-secondary" onclick="abrirModalEditar(${id})">
+                            <i class="fas fa-edit me-1"></i> Editar
+                        </button>
                     </div>
                 `;
             }
@@ -629,7 +629,82 @@
         }
 
         // =====================================================
-        // MODALES
+        // CREAR ELEMENTO - CON RECARGA DE ÁRBOL
+        // =====================================================
+        async function guardarNuevoElemento() {
+            const nivel = document.getElementById('nivel_elemento').value;
+            const numero = document.getElementById('numero_elemento').value;
+            const padre = document.getElementById('padre_elemento').value;
+            const titulo = document.getElementById('titulo_elemento').value;
+            const contenido = document.getElementById('contenido_elemento').value;
+            const fechaVigencia = document.getElementById('fecha_vigencia').value;
+            const esVigente = document.getElementById('es_vigente').checked;
+            
+            if (!numero || !titulo) {
+                alert('Complete los campos obligatorios');
+                return;
+            }
+            
+            const nivelMap = {
+                'Título': 1,
+                'Capítulo': 2,
+                'Artículo': 3,
+                'Inciso': 4
+            };
+            const id_nivel_reglamento = nivelMap[nivel] || 3;
+            
+            let id_reglamento = 1;
+            let id_elemento_padre = null;
+            
+            if (padre) {
+                if (padre.startsWith('reg_')) {
+                    id_reglamento = parseInt(padre.split('_')[1]);
+                } else {
+                    id_elemento_padre = parseInt(padre);
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/normativa/elemento', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_reglamento: id_reglamento,
+                        id_elemento_padre: id_elemento_padre,
+                        id_nivel_reglamento: id_nivel_reglamento,
+                        numero_etiqueta: numero,
+                        contenido_texto: contenido || `Contenido del ${numero}: ${titulo}`,
+                        titulo: titulo,
+                        orden: 1,
+                        fecha_inicio_vigencia: fechaVigencia || new Date().toISOString().split('T')[0],
+                        id_estado_vigencia: esVigente ? 1 : 2,
+                        id_usuario_registro: 1
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Elemento creado: ${nivel} ${numero} - ${titulo}`);
+                    
+                    const modalElement = document.getElementById('modalNuevoElemento');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    modal.hide();
+                    document.getElementById('formNuevoElemento').reset();
+                    
+                    // ✅ RECARGAR EL ÁRBOL
+                    loadTree();
+                } else {
+                    alert('Error: ' + (result.message || 'Error al crear el elemento'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            }
+        }
+
+        // =====================================================
+        // PUBLICAR NUEVA VERSIÓN - CON RECARGA DE ÁRBOL
         // =====================================================
         function abrirModalNuevaVersion(id, numero, titulo) {
             document.getElementById('version_id_elemento').value = id;
@@ -654,10 +729,10 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        id_elemento: id,
+                        id_elemento: parseInt(id),
                         texto_nuevo: nuevoContenido,
                         fecha_inicio: nuevaFecha,
-                        acuerdo: acuerdo
+                        acuerdo: acuerdo || null
                     })
                 });
                 
@@ -665,23 +740,84 @@
                 
                 if (result.success) {
                     alert(`✅ Nueva versión publicada.\nVigencia a partir de: ${nuevaFecha}\nLa versión anterior ha sido marcada como HISTÓRICA.`);
-                    bootstrap.Modal.getInstance(document.getElementById('modalNuevaVersion')).hide();
-                    if (currentElementoId) {
-                        loadArticuloContent(currentElementoId, '', '');
-                    }
+                    
+                    const modalElement = document.getElementById('modalNuevaVersion');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    modal.hide();
+                    
+                    // ✅ RECARGAR EL ÁRBOL
                     loadTree();
+                    
+                    if (currentElementoId) {
+                        const node = document.querySelector(`.tree-node[data-id="${currentElementoId}"]`);
+                        if (node) {
+                            const numero = node.getAttribute('data-numero');
+                            const titulo = node.getAttribute('data-titulo');
+                            loadArticuloContent(currentElementoId, numero, titulo);
+                        }
+                    }
+                    
+                    document.getElementById('version_acuerdo').value = '';
                 } else {
-                    alert('Error: ' + result.message);
+                    alert('Error: ' + (result.message || 'Error al publicar'));
                 }
             } catch (error) {
+                console.error('Error:', error);
                 alert('Error de conexión');
             }
         }
 
-        function guardarNuevoElemento() {
-            const nivel = document.getElementById('nivel_elemento').value;
+        // =====================================================
+        // EDITAR ELEMENTO - FUNCIONALIDAD COMPLETA
+        // =====================================================
+        function abrirModalEditar(id) {
+            // Obtener los datos del elemento actual
+            const node = document.querySelector(`.tree-node[data-id="${id}"]`);
+            if (!node) {
+                alert('Elemento no encontrado');
+                return;
+            }
+            
+            const numero = node.getAttribute('data-numero');
+            const titulo = node.getAttribute('data-titulo');
+            const estado = node.getAttribute('data-estado');
+            
+            // Llenar el formulario de edición
+            document.getElementById('modalNuevoElementoTitulo').innerHTML = '<i class="fas fa-edit me-2"></i>Editar elemento normativo';
+            document.getElementById('numero_elemento').value = numero;
+            document.getElementById('titulo_elemento').value = titulo;
+            
+            // Obtener el contenido actual
+            const contenidoDiv = document.querySelector('#contenido-articulo .articulo-contenido .bg-light');
+            if (contenidoDiv) {
+                document.getElementById('contenido_elemento').value = contenidoDiv.innerText.trim();
+            }
+            
+            // Fecha de vigencia
+            const fechaSpan = document.querySelector('#contenido-articulo .bg-light');
+            if (fechaSpan) {
+                const fechaMatch = fechaSpan.innerText.match(/Desde:\s*(\d{4}-\d{2}-\d{2})/);
+                if (fechaMatch) {
+                    document.getElementById('fecha_vigencia').value = fechaMatch[1];
+                }
+            }
+            
+            document.getElementById('es_vigente').checked = estado === 'vigente';
+            
+            // Configurar el botón de guardar como "Actualizar"
+            const btnGuardar = document.getElementById('btn-guardar-elemento');
+            btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i> Actualizar Elemento';
+            btnGuardar.onclick = function() {
+                actualizarElemento(id);
+            };
+            
+            // Mostrar el modal
+            const modal = new bootstrap.Modal(document.getElementById('modalNuevoElemento'));
+            modal.show();
+        }
+
+        async function actualizarElemento(id) {
             const numero = document.getElementById('numero_elemento').value;
-            const padre = document.getElementById('padre_elemento').value;
             const titulo = document.getElementById('titulo_elemento').value;
             const contenido = document.getElementById('contenido_elemento').value;
             const fechaVigencia = document.getElementById('fecha_vigencia').value;
@@ -692,16 +828,55 @@
                 return;
             }
             
-            alert(`✅ Elemento creado: ${nivel} ${numero} - ${titulo}\n${padre ? `Dentro de: ${padre}` : 'Elemento raíz'}`);
-            
-            const modalElement = document.getElementById('modalNuevoElemento');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            modal.hide();
-            document.getElementById('formNuevoElemento').reset();
-        }
-
-        function abrirModalEditar(id) {
-            alert(`Función de edición - Elemento ID: ${id}\n(Implementar en Sprint 3 con conexión a BD)`);
+            try {
+                const response = await fetch(`/api/normativa/elemento/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        numero_etiqueta: numero,
+                        contenido_texto: contenido || `Contenido del ${numero}: ${titulo}`,
+                        titulo: titulo,
+                        fecha_inicio_vigencia: fechaVigencia || new Date().toISOString().split('T')[0],
+                        id_estado_vigencia: esVigente ? 1 : 2
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Elemento actualizado: ${numero} - ${titulo}`);
+                    
+                    // Cerrar modal
+                    const modalElement = document.getElementById('modalNuevoElemento');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    modal.hide();
+                    
+                    // Limpiar y restaurar el formulario
+                    document.getElementById('formNuevoElemento').reset();
+                    const btnGuardar = document.getElementById('btn-guardar-elemento');
+                    btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i> Crear elemento';
+                    btnGuardar.onclick = function() { guardarNuevoElemento(); };
+                    document.getElementById('modalNuevoElementoTitulo').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Crear nuevo elemento normativo';
+                    
+                    // ✅ RECARGAR EL ÁRBOL
+                    loadTree();
+                    
+                    // Recargar el contenido del artículo actual
+                    if (currentElementoId) {
+                        const node = document.querySelector(`.tree-node[data-id="${currentElementoId}"]`);
+                        if (node) {
+                            const num = node.getAttribute('data-numero');
+                            const tit = node.getAttribute('data-titulo');
+                            loadArticuloContent(currentElementoId, num, tit);
+                        }
+                    }
+                } else {
+                    alert('Error: ' + (result.message || 'Error al actualizar'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            }
         }
 
         // =====================================================
