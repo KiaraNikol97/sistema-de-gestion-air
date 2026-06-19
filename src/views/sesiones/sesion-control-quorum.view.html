@@ -352,30 +352,43 @@
             cargarTablaAsistencia();
             actualizarQuorum();
         }
-
         async function crearSesion() {
-            const tipo = document.getElementById('tipo_sesion').value;
-            const numero = document.getElementById('numero_sesion').value;
-            const fecha = document.getElementById('fecha_sesion').value;
-            
-            if (!numero || !fecha) { alert('Complete todos los campos'); return; }
-            
+           const tipo = document.getElementById('tipo_sesion').value;
+           const numero = document.getElementById('numero_sesion').value;
+           const fecha = document.getElementById('fecha_sesion').value;
+    
+            if (!numero || !fecha) {
+                alert('Complete todos los campos');
+                return;
+            }
+    
+    // Mapear tipo de sesión a ID (usando tus catálogos)
+            const tipoSesionMap = {
+                'Ordinaria': 1,
+                'Extraordinaria': 2,
+                'Solemne': 3
+            };
+    
+    // Modalidad: por defecto Presencial (ID 1)
+            const id_tipo_modalidad = 1;
+            const id_tipo_sesion = tipoSesionMap[tipo] || 1;
+    
             try {
                 const response = await fetch('/api/sesiones/crear', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        id_tipo_modalidad: 1,
-                        id_tipo_sesion: tipo === 'Ordinaria' ? 1 : 2,
+                        id_tipo_modalidad: id_tipo_modalidad,
+                        id_tipo_sesion: id_tipo_sesion,
                         numero_sesion: numero,
                         fecha: fecha,
                         quorum_requerido: Math.ceil(asambleistasReales.length * 0.5) + 1
                     })
                 });
-                
+        
                 const result = await response.json();
                 if (result.success) {
-                    alert(`✅ Sesión creada: ${tipo} ${numero} - ${fecha}`);
+                   alert(`✅ Sesión creada: ${tipo} ${numero} - ${fecha}`);
                     await cargarSesiones();
                     const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaSesion'));
                     modal.hide();
@@ -388,6 +401,8 @@
                 alert('Error de conexión');
             }
         }
+
+
 
         async function init() {
             await loadSharedComponents();

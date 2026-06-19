@@ -164,18 +164,19 @@
                 select.innerHTML = '<option value="">-- Error al cargar sesiones --</option>';
             }
         }
-
-        // Cargar votaciones de una sesión
         async function cargarVotaciones(sesionId) {
             const select = document.getElementById('votacion-select');
             select.innerHTML = '<option value="">-- Cargando votaciones... --</option>';
             try {
                 const response = await fetch(`/api/votaciones?id_sesion=${sesionId}`);
                 const result = await response.json();
+                console.log('Votaciones cargadas:', result);
+        
                 if (result.success && result.data && result.data.length > 0) {
                     select.innerHTML = '<option value="">-- Seleccionar votación --</option>';
                     result.data.forEach(v => {
-                        select.innerHTML += `<option value="${v.id_votacion}">${v.numero_votacion || 'Votación'} - ${v.resultado || 'Pendiente'}</option>`;
+                        const estado = v.resultado || 'Pendiente';
+                        select.innerHTML += `<option value="${v.id_votacion}">${v.numero_votacion || 'Votación'} - ${estado}</option>`;
                     });
                 } else {
                     select.innerHTML = '<option value="">-- No hay votaciones en esta sesión --</option>';
@@ -185,6 +186,7 @@
                 select.innerHTML = '<option value="">-- Error al cargar votaciones --</option>';
             }
         }
+
 
         // Cargar asambleístas desde la BD
         async function cargarAsambleistasReales() {
