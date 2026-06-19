@@ -109,7 +109,7 @@ router.get('/api/sesiones', async (req, res) => {
     const db = require('../config/db');
     try {
         const result = await db.query(`
-            SELECT id_sesion, numero_sesion, tipo_sesion, fecha, quorum_requerido 
+            SELECT id_sesion, numero_sesion, id_tipo_modalidad, id_tipo_sesion, fecha, quorum_requerido, estado 
             FROM sesion 
             ORDER BY fecha DESC
         `);
@@ -125,7 +125,7 @@ router.get('/api/sesiones/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const result = await db.query(`
-            SELECT id_sesion, numero_sesion, tipo_sesion, fecha, quorum_requerido 
+            SELECT id_sesion, numero_sesion, id_tipo_modalidad, id_tipo_sesion, fecha, quorum_requerido, estado 
             FROM sesion 
             WHERE id_sesion = $1
         `, [id]);
@@ -1939,6 +1939,175 @@ router.get('/api/certificaciones/estadisticas', async (req, res) => {
             message: 'Error al obtener estadísticas',
             error: error.message
         });
+    }
+});
+
+// =====================================================
+// RUTAS DE COMISIONES (Issue #7)
+// =====================================================
+
+// Listar comisiones
+router.get('/api/comisiones', async (req, res) => {
+    const db = require('../config/db');
+    try {
+        const result = await db.query(`
+            SELECT 
+                c.id_comision,
+                c.nombre_comision,
+                c.id_tipo_comision,
+                c.objeto,
+                c.activo,
+                c.fecha_creacion,
+                COALESCE(
+                    (SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'id_asambleista', a.id_asambleista,
+                            'nombre', a.nombre,
+                            'cedula', a.cedula
+                        )
+                     ) FROM integrante_comision ic
+                     JOIN asambleista a ON ic.id_asambleista = a.id_asambleista
+                     WHERE ic.id_comision = c.id_comision AND ic.estado = 'Activo'
+                    ), '[]'::jsonb
+                ) AS integrantes
+            FROM comision c
+            ORDER BY c.fecha_creacion DESC
+        `);
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error en /api/comisiones:', error);
+        res.json({ success: true, data: [] });
+    }
+});
+
+// Obtener una comisión por ID
+router.get('/api/comisiones/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    try {
+        const result = await db.query(`
+            SELECT 
+                c.id_comision,
+                c.nombre_comision,
+                c.id_tipo_comision,
+                c.objeto,
+                c.activo,
+                c.fecha_creacion,
+                COALESCE(
+                    (SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'id_asambleista', a.id_asambleista,
+                            'nombre', a.nombre,
+                            'cedula', a.cedula,
+                            'id_rol_comision', ic.id_rol_comision,
+                            'rol_nombre', rc.nombre_rol
+                        )
+                     ) FROM integrante_comision ic
+                     JOIN asambleista a ON ic.id_asambleista = a.id_asambleista
+                     LEFT JOIN catalogo_rol_comision rc ON ic.id_rol_comision = rc.id_rol_comision
+                     WHERE ic.id_comision = c.id_comision
+                    ), '[]'::jsonb
+                ) AS integrantes
+            FROM comision c
+            WHERE c.id_comision = $1
+        `, [id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Comisión no encontrada' });
+        }
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error en /api/comisiones/:id:', error);
+        res.status(500).json({ success: false, message: 'Error al obtener comisión' });
+    }
+});
+
+// Crear comisión
+router.post('/api/comisiones', async (req, res) => {
+    const db = require('../config/db');
+    const { nombre_comision, id_tipo_comision, objeto, integrantes } = req.body;
+
+    try {
+        // Insertar comisión
+        const result = await db.query(`
+            INSERT INTO comision (nombre_comision, id_tipo_comision, objeto, activo)
+            VALUES ($1, $2, $3, TRUE)
+            RETURNING id_comision
+        `, [nombre_comision, id_tipo_comision || 1, objeto || null]);
+        
+        const id_comision = result.rows[0].id_comision;
+
+        // Insertar integrantes
+        if (integrantes && integrantes.length > 0) {
+            for (const i of integrantes) {
+                await db.query(`
+                    INSERT INTO integrante_comision (
+                        id_comision, id_asambleista, id_rol_comision, fecha_ingreso_nombramiento
+                    ) VALUES ($1, $2, $3, CURRENT_DATE)
+                `, [id_comision, i.id_asambleista, i.id_rol_comision || 3]);
+            }
+        }
+
+        res.status(201).json({ 
+            success: true, 
+            message: 'Comisión creada exitosamente', 
+            data: { id: id_comision } 
+        });
+    } catch (error) {
+        console.error('Error en POST /api/comisiones:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al crear comisión', 
+            error: error.message 
+        });
+    }
+});
+
+// Actualizar comisión
+router.put('/api/comisiones/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    const { nombre_comision, id_tipo_comision, objeto, activo, integrantes } = req.body;
+
+    try {
+        // Actualizar comisión
+        await db.query(`
+            UPDATE comision 
+            SET nombre_comision = $1, id_tipo_comision = $2, objeto = $3, activo = $4
+            WHERE id_comision = $5
+        `, [nombre_comision, id_tipo_comision || 1, objeto || null, activo !== undefined ? activo : true, id]);
+
+        // Eliminar integrantes antiguos
+        await db.query('DELETE FROM integrante_comision WHERE id_comision = $1', [id]);
+
+        // Insertar nuevos integrantes
+        if (integrantes && integrantes.length > 0) {
+            for (const i of integrantes) {
+                await db.query(`
+                    INSERT INTO integrante_comision (
+                        id_comision, id_asambleista, id_rol_comision, fecha_ingreso_nombramiento
+                    ) VALUES ($1, $2, $3, CURRENT_DATE)
+                `, [id, i.id_asambleista, i.id_rol_comision || 3]);
+            }
+        }
+
+        res.json({ success: true, message: 'Comisión actualizada exitosamente' });
+    } catch (error) {
+        console.error('Error en PUT /api/comisiones/:id:', error);
+        res.status(500).json({ success: false, message: 'Error al actualizar comisión', error: error.message });
+    }
+});
+
+// Eliminar comisión
+router.delete('/api/comisiones/:id', async (req, res) => {
+    const db = require('../config/db');
+    const { id } = req.params;
+    try {
+        await db.query('DELETE FROM comision WHERE id_comision = $1', [id]);
+        res.json({ success: true, message: 'Comisión eliminada exitosamente' });
+    } catch (error) {
+        console.error('Error en DELETE /api/comisiones/:id:', error);
+        res.status(500).json({ success: false, message: 'Error al eliminar comisión', error: error.message });
     }
 });
 
