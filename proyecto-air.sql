@@ -3818,7 +3818,7 @@ VALUES (
 
 -- === Módulo 2 ===
 
--- 2.1 Carga recursiva de reglamento
+-- 2.1 Carga recursiva de reglamento (Simulación)
 INSERT INTO reglamento (
     id_reglamento,
     nombre_normativa,
@@ -3881,6 +3881,8 @@ VALUES (
     1,
     1
 );
+
+-- Luego del .txt en la GUI:
 
 -- Ver árbol del reglamento de prueba
 SELECT *
