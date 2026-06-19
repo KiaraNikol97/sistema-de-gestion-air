@@ -407,7 +407,8 @@
             const numero = document.getElementById('numero_sesion').value;
             const fecha = document.getElementById('fecha_sesion').value;
             const quorum = document.getElementById('quorum_porcentaje').value;
-    
+            const id_tipo_modalidad = parseInt(document.getElementById('modalidad_sesion').value) || 1;
+            
             if (!numero || !fecha) {
                alert('Complete todos los campos');
             return;
