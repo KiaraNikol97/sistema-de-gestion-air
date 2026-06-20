@@ -60,7 +60,8 @@
                     </div>
                 </div>
                 <div class="text-end mt-2">
-                    <button id="btn-consultar" class="btn-preview">
+                    <!-- BOTÓN CON onclICK DIRECTAMENTE EN EL HTML -->
+                    <button id="btn-consultar" class="btn-preview" onclick="consultarAtestados()">
                         <i class="fas fa-search me-2"></i> Consultar Atestados
                     </button>
                 </div>
@@ -178,10 +179,10 @@
             </div>
 
             <div class="text-end mt-4">
-                <button id="btn-generar-certificado" class="btn-preview">
+                <button id="btn-generar-certificado" class="btn-preview" onclick="generarCertificado()">
                     <i class="fas fa-file-pdf me-2"></i> Generar Certificado Oficial
                 </button>
-                <button id="btn-limpiar" class="btn btn-secondary ms-2">
+                <button id="btn-limpiar" class="btn btn-secondary ms-2" onclick="limpiar()">
                     <i class="fas fa-eraser me-1"></i> Limpiar
                 </button>
             </div>
@@ -196,8 +197,10 @@
     
     <script>
         // =====================================================
-        // SOLICITUD DE ATESTADOS - VERSIÓN FUNCIONAL
+        // SOLICITUD DE ATESTADOS - VERSIÓN CON onCLICK
         // =====================================================
+        
+        // TODAS las funciones deben ser GLOBALES (accesibles desde onclick)
         
         let currentAsambleistaData = null;
         let currentAsambleistaId = null;
@@ -241,10 +244,10 @@
         }
 
         // =====================================================
-        // CONSULTAR ATESTADOS - FUNCIÓN PRINCIPAL
+        // FUNCIÓN CONSULTAR - ACCESIBLE GLOBALMENTE
         // =====================================================
         async function consultarAtestados() {
-            console.log('✅ Función consultarAtestados ejecutada');
+            console.log('✅ consultarAtestados() ejecutada desde onclick');
             
             const asambleistaId = document.getElementById('asambleista-select').val();
             const fechaDesde = document.getElementById('fecha_desde').value;
@@ -298,7 +301,6 @@
                             asistio: a.estado_asistencia === 'Presente' || a.estado_asistencia === true
                         }));
                     } else {
-                        // Datos de ejemplo si no hay asistencias
                         asistencias = [
                             { fecha: "2024-01-15", sesion: "Ordinaria AIR-01-2024", tipo: "Ordinaria", asistio: true },
                             { fecha: "2024-02-10", sesion: "Ordinaria AIR-02-2024", tipo: "Ordinaria", asistio: true },
@@ -390,15 +392,16 @@
             }
         }
 
+        // =====================================================
+        // MOSTRAR RESULTADOS
+        // =====================================================
         function mostrarResultados(data, fechaDesde, fechaHasta) {
             console.log('📊 Mostrando resultados:', data);
             
-            // Información básica
             document.getElementById('asambleista-nombre').innerText = data.nombre || 'Nombre no disponible';
             document.getElementById('asambleista-cedula').innerText = data.cedula || 'Cédula no disponible';
             document.getElementById('asambleista-sector').innerText = data.sector || 'No asignado';
             
-            // Filtrar por fechas
             const asistenciaFiltrada = data.asistencia.filter(a => {
                 const fecha = new Date(a.fecha);
                 return fecha >= new Date(fechaDesde) && fecha <= new Date(fechaHasta);
@@ -413,7 +416,6 @@
             document.getElementById('total-propuestas').innerText = data.propuestas.length;
             document.getElementById('total-comisiones').innerText = data.comisiones.length;
             
-            // Guardar datos para el certificado
             currentAsambleistaData = {
                 asambleista: {
                     id: data.id,
@@ -479,10 +481,12 @@
                 });
             }
             
-            // Mostrar contenedor
             document.getElementById('resultados-container').style.display = 'block';
         }
 
+        // =====================================================
+        // GENERAR CERTIFICADO
+        // =====================================================
         function generarCertificado() {
             if (!currentAsambleistaData) {
                 showError('Primero consulte los atestados de un asambleísta');
@@ -508,6 +512,9 @@
             window.location.href = '/views/certificaciones/certificado-final.view.html';
         }
 
+        // =====================================================
+        // LIMPIAR
+        // =====================================================
         function limpiar() {
             document.getElementById('asambleista-select').val('').trigger('change');
             document.getElementById('resultados-container').style.display = 'none';
@@ -516,34 +523,13 @@
         }
 
         // =====================================================
-        // EVENT LISTENERS - CORREGIDOS
+        // INICIALIZAR
         // =====================================================
-        
-        // Usar addEventListener en lugar de onclick en el HTML
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ DOM cargado, asignando event listeners');
-            
-            const btnConsultar = document.getElementById('btn-consultar');
-            if (btnConsultar) {
-                btnConsultar.addEventListener('click', consultarAtestados);
-                console.log('✅ Event listener asignado al botón Consultar');
-            } else {
-                console.error('❌ No se encontró el botón btn-consultar');
-            }
-            
-            const btnGenerar = document.getElementById('btn-generar-certificado');
-            if (btnGenerar) {
-                btnGenerar.addEventListener('click', generarCertificado);
-            }
-            
-            const btnLimpiar = document.getElementById('btn-limpiar');
-            if (btnLimpiar) {
-                btnLimpiar.addEventListener('click', limpiar);
-            }
+            console.log('✅ DOM cargado correctamente');
+            loadSharedComponents();
+            cargarAsambleistas();
         });
-
-        loadSharedComponents();
-        cargarAsambleistas();
     </script>
 </body>
 </html>
