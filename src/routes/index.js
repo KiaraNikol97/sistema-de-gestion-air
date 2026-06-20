@@ -2111,4 +2111,100 @@ router.delete('/api/comisiones/:id', async (req, res) => {
     }
 });
 
+// =====================================================
+// RUTAS DE COMISIONES POR ASAMBLEÍSTA (para certificaciones)
+// =====================================================
+
+// Obtener comisiones de un asambleísta
+router.get('/api/comisiones/asambleista/:id_asambleista', async (req, res) => {
+    const db = require('../config/db');
+    const { id_asambleista } = req.params;
+    try {
+        const result = await db.query(`
+            SELECT 
+                c.id_comision,
+                c.nombre_comision as nombre,
+                ic.fecha_ingreso_nombramiento as fecha_inicio,
+                ic.fecha_fin_nombramiento as fecha_fin,
+                rc.nombre_rol as rol
+            FROM integrante_comision ic
+            INNER JOIN comision c ON ic.id_comision = c.id_comision
+            LEFT JOIN catalogo_rol_comision rc ON ic.id_rol_comision = rc.id_rol_comision
+            WHERE ic.id_asambleista = $1
+              AND ic.estado = 'Activo'
+        `, [id_asambleista]);
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error en comisiones/asambleista:', error);
+        res.json({ success: true, data: [] });
+    }
+});
+
+// Obtener propuestas de un asambleísta
+router.get('/api/propuestas/asambleista/:id_asambleista', async (req, res) => {
+    const db = require('../config/db');
+    const { id_asambleista } = req.params;
+    try {
+        const result = await db.query(`
+            SELECT 
+                p.id_propuesta,
+                p.numero_propuesta,
+                p.titulo,
+                p.fecha_presentacion as fecha,
+                pp.rol_proponente as rol,
+                ep.nombre as estado
+            FROM proponente_propuesta pp
+            INNER JOIN propuesta p ON pp.id_propuesta = p.id_propuesta
+            LEFT JOIN catalogo_estado_propuesta ep ON p.id_estado_propuesta = ep.id_estado_propuesta
+            WHERE pp.id_asambleista = $1
+        `, [id_asambleista]);
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error en propuestas/asambleista:', error);
+        res.json({ success: true, data: [] });
+    }
+});
+
+// Obtener asistencias de un asambleísta (para certificaciones)
+router.get('/api/asistencias/asambleista/:id_asambleista', async (req, res) => {
+    const db = require('../config/db');
+    const { id_asambleista } = req.params;
+    const { desde, hasta } = req.query;
+    try {
+        let query = `
+            SELECT 
+                s.id_sesion,
+                s.numero_sesion,
+                s.fecha,
+                s.tipo_sesion,
+                CASE WHEN asp.id_asistencia IS NOT NULL THEN 'Presente' ELSE 'Ausente' END as estado_asistencia
+            FROM sesion s
+            LEFT JOIN asistencia_sesion_plenaria asp 
+                ON s.id_sesion = asp.id_sesion AND asp.id_asambleista = $1
+            WHERE s.estado != 'Cancelada'
+        `;
+        const params = [id_asambleista];
+        let paramCount = 2;
+
+        if (desde) {
+            query += ` AND s.fecha >= $${paramCount}`;
+            params.push(desde);
+            paramCount++;
+        }
+        if (hasta) {
+            query += ` AND s.fecha <= $${paramCount}`;
+            params.push(hasta);
+            paramCount++;
+        }
+
+        query += ` ORDER BY s.fecha DESC`;
+
+        const result = await db.query(query, params);
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error en asistencias/asambleista:', error);
+        res.json({ success: true, data: [] });
+    }
+});
+
 module.exports = router;
