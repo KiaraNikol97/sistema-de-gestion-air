@@ -73,9 +73,8 @@
             <p class="mt-2">Consultando historial del asambleísta...</p>
         </div>
 
-        <!-- Resultados de la consulta (Previsualización) -->
+        <!-- Resultados -->
         <div id="resultados-container" style="display: none;">
-            <!-- Información del Asambleísta -->
             <div class="info-asambleista">
                 <div class="row align-items-center">
                     <div class="col-md-8">
@@ -94,7 +93,6 @@
                 </div>
             </div>
 
-            <!-- Resumen de Participación -->
             <div class="row mb-4">
                 <div class="col-md-4">
                     <div class="card text-center">
@@ -125,7 +123,6 @@
                 </div>
             </div>
 
-            <!-- Detalle de Sesiones -->
             <div class="card mb-4">
                 <div class="card-header-custom">
                     <i class="fas fa-calendar-alt me-1 text-success"></i> Asistencia a Sesiones
@@ -144,7 +141,6 @@
                 </div>
             </div>
 
-            <!-- Detalle de Propuestas -->
             <div class="card mb-4">
                 <div class="card-header-custom">
                     <i class="fas fa-file-alt me-1 text-info"></i> Propuestas Participadas
@@ -163,7 +159,6 @@
                 </div>
             </div>
 
-            <!-- Detalle de Comisiones -->
             <div class="card mb-4">
                 <div class="card-header-custom">
                     <i class="fas fa-users me-1 text-warning"></i> Comisiones Integradas
@@ -182,7 +177,6 @@
                 </div>
             </div>
 
-            <!-- Botones de acción -->
             <div class="text-end mt-4">
                 <button id="btn-generar-certificado" class="btn-preview">
                     <i class="fas fa-file-pdf me-2"></i> Generar Certificado Oficial
@@ -202,7 +196,7 @@
     
     <script>
         // =====================================================
-        // SOLICITUD DE ATESTADOS - VERSIÓN CORREGIDA
+        // CERTIFICACIONES CON DATOS REALES DE BD
         // =====================================================
         
         let currentAsambleistaData = null;
@@ -227,39 +221,31 @@
             setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
-        function showSuccess(message) {
-            alert('✅ ' + message);
-        }
-
-        // Cargar asambleístas desde la BD
         async function cargarAsambleistas() {
             const select = document.getElementById('asambleista-select');
             select.innerHTML = '<option value="">-- Cargando... --</option>';
-            
             try {
                 const response = await fetch('/api/asambleistas');
                 const result = await response.json();
-                
                 if (result.success && result.data) {
                     select.innerHTML = '<option value="">-- Seleccionar asambleísta --</option>';
                     result.data.forEach(a => {
                         select.innerHTML += `<option value="${a.id_asambleista}">${a.nombre} (${a.cedula})</option>`;
                     });
                     $('#asambleista-select').select2({ placeholder: "Buscar asambleísta...", allowClear: true });
-                } else {
-                    select.innerHTML = '<option value="">-- Error al cargar asambleístas --</option>';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                select.innerHTML = '<option value="">-- Error de conexión --</option>';
+                select.innerHTML = '<option value="">-- Error al cargar --</option>';
             }
         }
 
-        // Consultar atestados
         async function consultarAtestados() {
             const asambleistaId = document.getElementById('asambleista-select').val();
             const fechaDesde = document.getElementById('fecha_desde').value;
             const fechaHasta = document.getElementById('fecha_hasta').value;
+            
+            console.log('🔍 Consultando atestados para:', { asambleistaId, fechaDesde, fechaHasta });
             
             if (!asambleistaId) {
                 showError('Por favor seleccione un asambleísta');
@@ -275,97 +261,72 @@
                 // 1. Obtener datos del asambleísta
                 const asambleistaResponse = await fetch(`/api/asambleistas/${asambleistaId}`);
                 const asambleistaResult = await asambleistaResponse.json();
+                console.log('📊 Asambleísta:', asambleistaResult);
                 
                 if (!asambleistaResult.success || !asambleistaResult.data) {
                     throw new Error('No se encontraron datos del asambleísta');
                 }
                 
                 const asambleista = asambleistaResult.data;
-                console.log('📊 Asambleísta:', asambleista);
                 
                 // 2. Obtener sector vigente
                 let sectorNombre = 'No asignado';
                 try {
                     const sectorResponse = await fetch(`/api/nombramientos/vigente/${asambleistaId}`);
                     const sectorResult = await sectorResponse.json();
+                    console.log('📊 Sector vigente:', sectorResult);
                     if (sectorResult.success && sectorResult.data) {
-                        sectorNombre = sectorResult.data.sector;
+                        sectorNombre = sectorResult.data.sector || 'No asignado';
                     }
                 } catch (e) { console.error('Error sector:', e); }
                 
-                // 3. Obtener datos consolidados
+                // 3. Obtener asistencias reales
                 let asistencias = [];
-                let propuestas = [];
-                let comisiones = [];
-                
                 try {
-                    const consolidadosResponse = await fetch(`/api/certificaciones/datos-consolidados/${asambleistaId}`);
-                    const consolidadosResult = await consolidadosResponse.json();
-                    console.log('📊 Datos consolidados:', consolidadosResult);
-                    
-                    if (consolidadosResult.success && consolidadosResult.data) {
-                        const datos = consolidadosResult.data;
-                        
-                        // Parsear propuestas
-                        if (datos.propuestas) {
-                            try {
-                                propuestas = typeof datos.propuestas === 'string' ? JSON.parse(datos.propuestas) : datos.propuestas;
-                                if (!Array.isArray(propuestas)) propuestas = [];
-                            } catch (e) { propuestas = []; }
-                        }
-                        
-                        // Parsear comisiones
-                        if (datos.comisiones) {
-                            try {
-                                comisiones = typeof datos.comisiones === 'string' ? JSON.parse(datos.comisiones) : datos.comisiones;
-                                if (!Array.isArray(comisiones)) comisiones = [];
-                            } catch (e) { comisiones = []; }
-                        }
-                        
-                        // Crear asistencias a partir del total
-                        const totalAsistencias = datos.total_asistencias_plenarias || 0;
-                        if (totalAsistencias > 0) {
-                            for (let i = 0; i < Math.min(totalAsistencias, 5); i++) {
-                                asistencias.push({
-                                    fecha: new Date(Date.now() - i * 86400000 * 30).toISOString().split('T')[0],
-                                    sesion: `Sesión AIR-${String(i+1).padStart(3, '0')}-2024`,
-                                    tipo: 'Ordinaria',
-                                    asistio: true
-                                });
-                            }
-                        }
+                    const asistenciaResponse = await fetch(`/api/sesiones/${asambleistaId}/asistencia`);
+                    const asistenciaResult = await asistenciaResponse.json();
+                    console.log('📊 Asistencias:', asistenciaResult);
+                    if (asistenciaResult.success && asistenciaResult.data) {
+                        asistencias = asistenciaResult.data.map(a => ({
+                            fecha: a.fecha || a.fecha_sesion || new Date().toISOString().split('T')[0],
+                            sesion: a.numero_sesion || `Sesión ${a.id_sesion || 'N/A'}`,
+                            tipo: a.tipo_sesion || 'Ordinaria',
+                            asistio: a.estado_asistencia === 'Presente' || a.presente === true
+                        }));
                     }
-                } catch (e) {
-                    console.error('Error en datos consolidados:', e);
-                }
+                } catch (e) { console.error('Error asistencias:', e); }
                 
-                // Si no hay asistencias, usar datos de ejemplo
-                if (asistencias.length === 0) {
-                    asistencias = [
-                        { fecha: "2024-01-15", sesion: "Ordinaria AIR-01-2024", tipo: "Ordinaria", asistio: true },
-                        { fecha: "2024-02-10", sesion: "Ordinaria AIR-02-2024", tipo: "Ordinaria", asistio: true },
-                        { fecha: "2024-03-05", sesion: "Extraordinaria AIR-03-2024", tipo: "Extraordinaria", asistio: true },
-                        { fecha: "2024-04-20", sesion: "Ordinaria AIR-04-2024", tipo: "Ordinaria", asistio: false },
-                        { fecha: "2024-05-15", sesion: "Ordinaria AIR-05-2024", tipo: "Ordinaria", asistio: true }
-                    ];
-                }
+                // 4. Obtener propuestas reales
+                let propuestas = [];
+                try {
+                    const propuestaResponse = await fetch(`/api/propuestas/asambleista/${asambleistaId}`);
+                    const propuestaResult = await propuestaResponse.json();
+                    console.log('📊 Propuestas:', propuestaResult);
+                    if (propuestaResult.success && propuestaResult.data) {
+                        propuestas = propuestaResult.data.map(p => ({
+                            fecha: p.fecha_presentacion || p.fecha || new Date().toISOString().split('T')[0],
+                            titulo: p.titulo || 'Sin título',
+                            rol: p.rol || 'Participante',
+                            estado: p.estado || 'Pendiente'
+                        }));
+                    }
+                } catch (e) { console.error('Error propuestas:', e); }
                 
-                // Si no hay propuestas, usar ejemplo
-                if (propuestas.length === 0) {
-                    propuestas = [
-                        { fecha: "2024-02-10", titulo: "Reforma al Artículo 5 del Estatuto", rol: "Proponente", estado: "Aprobada" },
-                        { fecha: "2024-03-05", titulo: "Políticas Generales 2024-2028", rol: "Co-proponente", estado: "Aprobada" },
-                        { fecha: "2024-04-20", titulo: "Creación de Comisión de Ética", rol: "Miembro comisión", estado: "En discusión" }
-                    ];
-                }
-                
-                // Si no hay comisiones, usar ejemplo
-                if (comisiones.length === 0) {
-                    comisiones = [
-                        { fecha_inicio: "2024-01-20", fecha_fin: null, nombre: "Comisión de Reforma Estatutaria", rol: "Coordinadora" },
-                        { fecha_inicio: "2024-02-15", fecha_fin: "2024-12-31", nombre: "Comisión de Políticas Generales", rol: "Secretaria" }
-                    ];
-                }
+                // 5. Obtener comisiones reales
+                let comisiones = [];
+                try {
+                    const comisionResponse = await fetch(`/api/comisiones/asambleista/${asambleistaId}`);
+                    const comisionResult = await comisionResponse.json();
+                    console.log('📊 Comisiones:', comisionResult);
+                    if (comisionResult.success && comisionResult.data) {
+                        comisiones = comisionResult.data.map(c => ({
+                            fecha_inicio: c.fecha_inicio || c.fecha_ingreso_nombramiento || new Date().toISOString().split('T')[0],
+                            fecha_fin: c.fecha_fin || null,
+                            nombre: c.nombre || c.nombre_comision || 'Sin nombre',
+                            rol: c.rol || c.nombre_rol || 'Miembro'
+                        }));
+                    }
+                } catch (e) { console.error('Error comisiones:', e); }
                 
                 // Construir objeto de datos
                 const data = {
@@ -373,29 +334,34 @@
                     nombre: asambleista.nombre,
                     cedula: asambleista.cedula,
                     sector: sectorNombre,
-                    asistencia: asistencias,
-                    propuestas: propuestas,
-                    comisiones: comisiones
+                    asistencia: asistencias.length > 0 ? asistencias : [],
+                    propuestas: propuestas.length > 0 ? propuestas : [],
+                    comisiones: comisiones.length > 0 ? comisiones : []
                 };
                 
-                console.log('📊 Datos finales:', data);
+                console.log('📊 DATOS FINALES:', data);
+                
+                if (data.asistencia.length === 0 && data.propuestas.length === 0 && data.comisiones.length === 0) {
+                    showError('No se encontraron registros de participación para este asambleísta');
+                }
+                
                 mostrarResultados(data, fechaDesde, fechaHasta);
                 
             } catch (error) {
-                console.error('Error:', error);
+                console.error('❌ Error:', error);
                 showError(error.message || 'Error al consultar los atestados');
             } finally {
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('resultados-container').style.display = 'block';
             }
         }
 
-        // Mostrar resultados
         function mostrarResultados(data, fechaDesde, fechaHasta) {
+            console.log('📊 Mostrando resultados:', data);
+            
             // Información básica
-            document.getElementById('asambleista-nombre').innerText = data.nombre;
-            document.getElementById('asambleista-cedula').innerText = data.cedula;
-            document.getElementById('asambleista-sector').innerText = data.sector;
+            document.getElementById('asambleista-nombre').innerText = data.nombre || 'Nombre no disponible';
+            document.getElementById('asambleista-cedula').innerText = data.cedula || 'Cédula no disponible';
+            document.getElementById('asambleista-sector').innerText = data.sector || 'No asignado';
             
             // Filtrar por fechas
             const asistenciaFiltrada = data.asistencia.filter(a => {
@@ -403,7 +369,7 @@
                 return fecha >= new Date(fechaDesde) && fecha <= new Date(fechaHasta);
             });
             
-            const asistencias = asistenciaFiltrada.filter(a => a.asistio).length;
+            const asistencias = asistenciaFiltrada.filter(a => a.asistio === true).length;
             const totalSesiones = asistenciaFiltrada.length;
             const porcentajeAsistencia = totalSesiones > 0 ? Math.round((asistencias / totalSesiones) * 100) : 0;
             
@@ -433,13 +399,13 @@
             const sesionesTbody = document.getElementById('sesiones-tbody');
             sesionesTbody.innerHTML = '';
             if (asistenciaFiltrada.length === 0) {
-                sesionesTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay registros de asistencia en el período seleccionado</td></tr>';
+                sesionesTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay registros de asistencia</td></tr>';
             } else {
                 asistenciaFiltrada.forEach(s => {
                     const row = sesionesTbody.insertRow();
-                    row.insertCell(0).innerText = s.fecha;
-                    row.insertCell(1).innerText = s.sesion;
-                    row.insertCell(2).innerText = s.tipo;
+                    row.insertCell(0).innerText = s.fecha || '-';
+                    row.insertCell(1).innerText = s.sesion || 'Sin sesión';
+                    row.insertCell(2).innerText = s.tipo || 'Ordinaria';
                     row.insertCell(3).innerHTML = s.asistio ? 
                         '<span class="text-success"><i class="fas fa-check-circle"></i> Sí</span>' : 
                         '<span class="text-danger"><i class="fas fa-times-circle"></i> No</span>';
@@ -478,11 +444,10 @@
                 });
             }
             
-            // Asegurar que el contenedor sea visible
+            // Mostrar contenedor
             document.getElementById('resultados-container').style.display = 'block';
         }
 
-        // Generar certificado
         function generarCertificado() {
             if (!currentAsambleistaData) {
                 showError('Primero consulte los atestados de un asambleísta');
@@ -505,11 +470,9 @@
             
             console.log('✅ Guardando certificado:', certificadoData);
             localStorage.setItem('certificadoData', JSON.stringify(certificadoData));
-            
             window.location.href = '/views/certificaciones/certificado-final.view.html';
         }
 
-        // Limpiar
         function limpiar() {
             document.getElementById('asambleista-select').val('').trigger('change');
             document.getElementById('resultados-container').style.display = 'none';
@@ -517,12 +480,10 @@
             currentAsambleistaId = null;
         }
 
-        // Event listeners
         document.getElementById('btn-consultar').addEventListener('click', consultarAtestados);
         document.getElementById('btn-generar-certificado').addEventListener('click', generarCertificado);
         document.getElementById('btn-limpiar').addEventListener('click', limpiar);
 
-        // Inicializar
         loadSharedComponents();
         cargarAsambleistas();
     </script>
