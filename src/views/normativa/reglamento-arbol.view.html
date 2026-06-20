@@ -243,10 +243,10 @@
                     <div id="tree-container" style="max-height: calc(100vh - 280px); overflow-y: auto;">
                         <ul class="tree" id="normativa-tree">
                             <li>
-                                <div class="tree-node root-node" data-id="1" data-numero="REGLAMENTO" data-titulo="Reglamento General" data-estado="vigente">
-                                    <span class="articulo-numero">📘 REGLAMENTO</span>
-                                    <span class="articulo-titulo">Reglamento General de la AIR</span>
-                                    <div class="articulo-resumen">Estructura normativa completa</div>
+                                <div class="tree-node root-node" data-id="0" data-numero="REGLAMENTOS" data-titulo="Reglamentos" data-estado="vigente">
+                                    <span class="articulo-numero">📘 REGLAMENTOS</span>
+                                    <span class="articulo-titulo">Lista de Reglamentos</span>
+                                    <div class="articulo-resumen">Seleccione un reglamento para ver su estructura</div>
                                     <span class="badge-vigente">VIGENTE</span>
                                 </div>
                                 <ul id="root-children"></ul>
@@ -405,7 +405,7 @@
         let currentElementoId = null;
         let userRole = '';
         let puedeEditar = false;
-        let reglamentosList = [];
+        let elementosList = [];
 
         // =====================================================
         // OBTENER ROL DEL USUARIO
@@ -466,10 +466,50 @@
         }
 
         // =====================================================
+        // CARGAR ELEMENTOS PARA EL SELECTOR DE PADRE
+        // =====================================================
+        async function cargarElementosParaSelector() {
+            const padreSelect = document.getElementById('padre_elemento');
+            padreSelect.innerHTML = '<option value="">-- Ninguno (Raíz) --</option>';
+            
+            try {
+                const response = await fetch('/api/normativa/arbol');
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // Función para recorrer el árbol y agregar opciones al selector
+                    function agregarOpciones(nodos, nivel = 0) {
+                        const prefix = '  '.repeat(nivel);
+                        for (const node of nodos) {
+                            if (node.id && node.id !== 0) {
+                                const opcion = document.createElement('option');
+                                opcion.value = node.id;
+                                opcion.textContent = `${prefix}${node.numero} - ${node.titulo}`;
+                                padreSelect.appendChild(opcion);
+                            }
+                            if (node.hijos && node.hijos.length > 0) {
+                                agregarOpciones(node.hijos, nivel + 1);
+                            }
+                        }
+                    }
+                    agregarOpciones(result.data);
+                }
+            } catch (error) {
+                console.error('Error cargando elementos para selector:', error);
+            }
+        }
+
+        // =====================================================
         // RENDERIZAR ÁRBOL
         // =====================================================
         function renderTree(nodes, parentElement, level = 0) {
-            if (!nodes || nodes.length === 0) return;
+            if (!nodes || nodes.length === 0) {
+                // Mostrar mensaje de que no hay elementos
+                const li = document.createElement('li');
+                li.innerHTML = `<div class="tree-node"><span class="articulo-titulo">No hay elementos en este reglamento</span></div>`;
+                parentElement.appendChild(li);
+                return;
+            }
             
             nodes.forEach(node => {
                 const li = document.createElement('li');
@@ -653,14 +693,29 @@
             };
             const id_nivel_reglamento = nivelMap[nivel] || 3;
             
+            // Si no se selecciona padre, es un reglamento raíz (id_reglamento = 1 por defecto)
+            // Si se selecciona padre, obtenemos su reglamento
             let id_reglamento = 1;
             let id_elemento_padre = null;
             
             if (padre) {
+                // Verificar si el padre es un reglamento o un elemento
                 if (padre.startsWith('reg_')) {
                     id_reglamento = parseInt(padre.split('_')[1]);
                 } else {
                     id_elemento_padre = parseInt(padre);
+                    // Obtener el reglamento del padre (necesitas un endpoint para esto)
+                    try {
+                        const padreResponse = await fetch(`/api/normativa/articulo/${id_elemento_padre}`);
+                        const padreResult = await padreResponse.json();
+                        if (padreResult.success && padreResult.data) {
+                            // El ID del reglamento lo obtenemos del elemento padre
+                            // Nota: Necesitas que el endpoint devuelva id_reglamento
+                            // Si no, asumimos reglamento 1
+                        }
+                    } catch (e) {
+                        console.error('Error obteniendo reglamento del padre:', e);
+                    }
                 }
             }
             
@@ -692,7 +747,8 @@
                     modal.hide();
                     document.getElementById('formNuevoElemento').reset();
                     
-                    // ✅ RECARGAR EL ÁRBOL
+                    // ✅ RECARGAR EL ÁRBOL Y EL SELECTOR
+                    await cargarElementosParaSelector();
                     loadTree();
                 } else {
                     alert('Error: ' + (result.message || 'Error al crear el elemento'));
@@ -746,6 +802,7 @@
                     modal.hide();
                     
                     // ✅ RECARGAR EL ÁRBOL
+                    await cargarElementosParaSelector();
                     loadTree();
                     
                     if (currentElementoId) {
@@ -771,7 +828,6 @@
         // EDITAR ELEMENTO - FUNCIONALIDAD COMPLETA
         // =====================================================
         function abrirModalEditar(id) {
-            // Obtener los datos del elemento actual
             const node = document.querySelector(`.tree-node[data-id="${id}"]`);
             if (!node) {
                 alert('Elemento no encontrado');
@@ -782,18 +838,15 @@
             const titulo = node.getAttribute('data-titulo');
             const estado = node.getAttribute('data-estado');
             
-            // Llenar el formulario de edición
             document.getElementById('modalNuevoElementoTitulo').innerHTML = '<i class="fas fa-edit me-2"></i>Editar elemento normativo';
             document.getElementById('numero_elemento').value = numero;
             document.getElementById('titulo_elemento').value = titulo;
             
-            // Obtener el contenido actual
             const contenidoDiv = document.querySelector('#contenido-articulo .articulo-contenido .bg-light');
             if (contenidoDiv) {
                 document.getElementById('contenido_elemento').value = contenidoDiv.innerText.trim();
             }
             
-            // Fecha de vigencia
             const fechaSpan = document.querySelector('#contenido-articulo .bg-light');
             if (fechaSpan) {
                 const fechaMatch = fechaSpan.innerText.match(/Desde:\s*(\d{4}-\d{2}-\d{2})/);
@@ -804,14 +857,12 @@
             
             document.getElementById('es_vigente').checked = estado === 'vigente';
             
-            // Configurar el botón de guardar como "Actualizar"
             const btnGuardar = document.getElementById('btn-guardar-elemento');
             btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i> Actualizar Elemento';
             btnGuardar.onclick = function() {
                 actualizarElemento(id);
             };
             
-            // Mostrar el modal
             const modal = new bootstrap.Modal(document.getElementById('modalNuevoElemento'));
             modal.show();
         }
@@ -846,22 +897,19 @@
                 if (result.success) {
                     alert(`✅ Elemento actualizado: ${numero} - ${titulo}`);
                     
-                    // Cerrar modal
                     const modalElement = document.getElementById('modalNuevoElemento');
                     const modal = bootstrap.Modal.getInstance(modalElement);
                     modal.hide();
                     
-                    // Limpiar y restaurar el formulario
                     document.getElementById('formNuevoElemento').reset();
                     const btnGuardar = document.getElementById('btn-guardar-elemento');
                     btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i> Crear elemento';
                     btnGuardar.onclick = function() { guardarNuevoElemento(); };
                     document.getElementById('modalNuevoElementoTitulo').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Crear nuevo elemento normativo';
                     
-                    // ✅ RECARGAR EL ÁRBOL
+                    await cargarElementosParaSelector();
                     loadTree();
                     
-                    // Recargar el contenido del artículo actual
                     if (currentElementoId) {
                         const node = document.querySelector(`.tree-node[data-id="${currentElementoId}"]`);
                         if (node) {
@@ -916,8 +964,10 @@
             try {
                 const response = await fetch('/api/normativa/arbol');
                 const result = await response.json();
-                if (result.success && result.data) {
-                    renderTree(result.data, document.getElementById('root-children'));
+                const container = document.getElementById('root-children');
+                container.innerHTML = '';
+                if (result.success && result.data && result.data.length > 0) {
+                    renderTree(result.data, container);
                 } else {
                     renderEmptyTree();
                 }
@@ -939,6 +989,7 @@
         async function init() {
             await obtenerRolUsuario();
             loadSharedComponents();
+            await cargarElementosParaSelector();
             loadTree();
         }
 
