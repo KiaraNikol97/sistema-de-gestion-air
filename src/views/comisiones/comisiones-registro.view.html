@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Comisiones - AIR</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -15,12 +16,16 @@
         .card-body-custom { padding: 25px; }
         .form-label { font-weight: 600; color: #1e3c72; margin-bottom: 8px; }
         .form-control, .form-select { border-radius: 10px; border: 1px solid #e2e8f0; padding: 10px 15px; }
-        .btn-primary-custom { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none; border-radius: 10px; padding: 10px 25px; color: white; }
+        .btn-primary-custom { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none; border-radius: 10px; padding: 10px 25px; color: white; transition: transform 0.2s; }
+        .btn-primary-custom:hover { transform: translateY(-2px); }
+        .btn-secondary-custom { background: #6c757d; border: none; border-radius: 10px; padding: 10px 25px; color: white; }
         .integrante-tag { display: inline-block; background: #e2e8f0; padding: 5px 12px; border-radius: 20px; margin: 3px; font-size: 0.85rem; }
         .integrante-tag .remove-btn { cursor: pointer; margin-left: 8px; color: #dc3545; }
         .volver-link { display: inline-block; margin-bottom: 20px; color: #1e3c72; text-decoration: none; font-weight: 500; }
-        .error-msg { background-color: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 20px; display: none; }
-        .success-msg { background-color: #d1fae5; color: #065f46; padding: 12px; border-radius: 10px; margin-bottom: 20px; display: none; }
+        .volver-link:hover { text-decoration: underline; }
+        .error-msg { background-color: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #dc2626; display: none; }
+        .success-msg { background-color: #d1fae5; color: #065f46; padding: 12px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #10b981; display: none; }
+        .badge-rol { background-color: #1e3c72; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; }
     </style>
 </head>
 <body>
@@ -63,7 +68,7 @@
 
                         <hr>
 
-                        <h5 class="mb-3"><i class="fas fa-user-plus me-2"></i>Integrantes</h5>
+                        <h5 class="mb-3"><i class="fas fa-user-plus me-2"></i>Integrantes de la Comisión</h5>
                         
                         <div class="row">
                             <div class="col-md-8 mb-3">
@@ -89,8 +94,8 @@
 
                         <div id="integrantes-container" class="mb-3">
                             <label class="form-label">Integrantes agregados:</label>
-                            <div id="integrantes-lista" class="d-flex flex-wrap">
-                                <span class="text-muted small">No hay integrantes agregados</span>
+                            <div id="integrantes-lista" class="d-flex flex-wrap" style="min-height: 40px;">
+                                <span class="text-muted small" id="sin-integrantes-msg">No hay integrantes agregados</span>
                             </div>
                         </div>
 
@@ -115,36 +120,50 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
     <script>
+        // =====================================================
+        // REGISTRO DE COMISIONES - VERSIÓN CORREGIDA
+        // =====================================================
+        
         let integrantesSeleccionados = [];
         let asambleistasLista = [];
 
         function loadSharedComponents() {
-            fetch('/views/shared/navbar.view.html').then(res => res.text()).then(data => document.getElementById('navbar-placeholder').innerHTML = data).catch(() => {});
-            fetch('/views/shared/footer.view.html').then(res => res.text()).then(data => document.getElementById('footer-placeholder').innerHTML = data).catch(() => {});
+            fetch('/views/shared/navbar.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(err => console.error('Error cargando navbar:', err));
+            
+            fetch('/views/shared/footer.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(err => console.error('Error cargando footer:', err));
         }
 
-        function showError(msg) {
+        function showError(message) {
             const div = document.getElementById('error-msg');
-            div.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${msg}`;
+            div.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
             div.style.display = 'block';
             setTimeout(() => div.style.display = 'none', 5000);
         }
 
-        function showSuccess(msg) {
+        function showSuccess(message) {
             const div = document.getElementById('success-msg');
-            div.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${msg}`;
+            div.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${message}`;
             div.style.display = 'block';
             setTimeout(() => div.style.display = 'none', 3000);
         }
 
         function obtenerIdDeURL() {
-            return new URLSearchParams(window.location.search).get('id');
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
         }
 
+        // Cargar asambleístas
         async function cargarAsambleistas() {
             try {
                 const response = await fetch('/api/asambleistas');
                 const result = await response.json();
+                
                 if (result.success && result.data) {
                     asambleistasLista = result.data;
                     const select = document.getElementById('asambleista-select');
@@ -152,20 +171,34 @@
                     result.data.forEach(a => {
                         select.innerHTML += `<option value="${a.id_asambleista}">${a.nombre} (${a.cedula})</option>`;
                     });
-                    $('#asambleista-select').select2({ placeholder: "Buscar asambleísta...", allowClear: true });
+                    
+                    $('#asambleista-select').select2({
+                        placeholder: "Buscar asambleísta...",
+                        allowClear: true
+                    });
                 }
-            } catch (error) { console.error('Error:', error); }
+            } catch (error) {
+                console.error('Error cargando asambleístas:', error);
+            }
         }
 
+        // Agregar integrante
         function agregarIntegrante() {
             const asambleistaId = document.getElementById('asambleista-select').val();
             const rolId = document.getElementById('rol-select').value;
             
-            if (!asambleistaId) { showError('Seleccione un asambleísta'); return; }
+            if (!asambleistaId) {
+                showError('Seleccione un asambleísta');
+                return;
+            }
             
             const asambleista = asambleistasLista.find(a => a.id_asambleista == asambleistaId);
-            if (!asambleista) { showError('Asambleísta no encontrado'); return; }
+            if (!asambleista) {
+                showError('Asambleísta no encontrado');
+                return;
+            }
             
+            // Verificar duplicado
             if (integrantesSeleccionados.some(i => i.id == asambleistaId)) {
                 showError('El asambleísta ya está en la lista');
                 return;
@@ -185,16 +218,23 @@
             document.getElementById('asambleista-select').val('').trigger('change');
         }
 
+        // Renderizar integrantes
         function renderIntegrantes() {
             const container = document.getElementById('integrantes-lista');
+            const msg = document.getElementById('sin-integrantes-msg');
+            
             if (integrantesSeleccionados.length === 0) {
+                if (msg) msg.style.display = 'inline';
                 container.innerHTML = '<span class="text-muted small">No hay integrantes agregados</span>';
                 return;
             }
+            
             container.innerHTML = integrantesSeleccionados.map((i, index) => `
                 <span class="integrante-tag">
-                    ${i.nombre} (${i.rol_nombre})
-                    <span class="remove-btn" onclick="eliminarIntegrante(${index})"><i class="fas fa-times-circle"></i></span>
+                    ${i.nombre} <span class="badge-rol">${i.rol_nombre}</span>
+                    <span class="remove-btn" onclick="eliminarIntegrante(${index})">
+                        <i class="fas fa-times-circle"></i>
+                    </span>
                 </span>
             `).join('');
         }
@@ -204,10 +244,12 @@
             renderIntegrantes();
         }
 
+        // Cargar comisión para edición
         async function cargarComisionParaEdicion(id) {
             try {
                 const response = await fetch(`/api/comisiones/${id}`);
                 const result = await response.json();
+                
                 if (result.success && result.data) {
                     const data = result.data;
                     document.getElementById('comision_id').value = data.id_comision;
@@ -218,10 +260,11 @@
                     document.querySelector('.btn-primary-custom').innerHTML = '<i class="fas fa-save me-1"></i> Actualizar Comisión';
                     document.getElementById('btn-cancelar').style.display = 'inline-block';
                     
+                    // Cargar integrantes
                     if (data.integrantes) {
                         try {
                             const integrantes = typeof data.integrantes === 'string' ? JSON.parse(data.integrantes) : data.integrantes;
-                            if (Array.isArray(integrantes)) {
+                            if (Array.isArray(integrantes) && integrantes.length > 0) {
                                 integrantesSeleccionados = integrantes.map(i => ({
                                     id: i.id_asambleista || i.id,
                                     nombre: i.nombre || 'Desconocido',
@@ -231,7 +274,9 @@
                                 }));
                                 renderIntegrantes();
                             }
-                        } catch (e) { console.error('Error:', e); }
+                        } catch (e) {
+                            console.error('Error parseando integrantes:', e);
+                        }
                     }
                 }
             } catch (error) {
@@ -240,13 +285,35 @@
             }
         }
 
+        // GUARDAR COMISIÓN (CORREGIDO)
         async function guardarComision() {
             const id = document.getElementById('comision_id').value;
             const nombre_comision = document.getElementById('nombre_comision').value;
             const id_tipo_comision = document.getElementById('id_tipo_comision').value;
             const objeto = document.getElementById('objeto').value;
             
-            if (!nombre_comision) { showError('Complete el nombre de la comisión'); return; }
+            if (!nombre_comision || nombre_comision.trim() === '') {
+                showError('Complete el nombre de la comisión');
+                return;
+            }
+            
+            if (integrantesSeleccionados.length === 0) {
+                showError('Agregue al menos un integrante a la comisión');
+                return;
+            }
+            
+            // Construir datos correctamente
+            const datos = {
+                nombre_comision: nombre_comision.trim(),
+                id_tipo_comision: parseInt(id_tipo_comision) || 1,
+                objeto: objeto || '',
+                integrantes: integrantesSeleccionados.map(i => ({
+                    id_asambleista: parseInt(i.id),
+                    id_rol_comision: parseInt(i.rol) || 3
+                }))
+            };
+            
+            console.log('📝 Enviando datos:', JSON.stringify(datos, null, 2));
             
             try {
                 const url = id ? `/api/comisiones/${id}` : '/api/comisiones';
@@ -255,38 +322,39 @@
                 const response = await fetch(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        nombre_comision,
-                        id_tipo_comision: parseInt(id_tipo_comision) || 1,
-                        objeto,
-                        integrantes: integrantesSeleccionados.map(i => ({
-                            id_asambleista: i.id,
-                            id_rol_comision: i.rol || 3
-                        }))
-                    })
+                    body: JSON.stringify(datos)
                 });
                 
                 const result = await response.json();
+                console.log('📊 Respuesta del servidor:', result);
+                
                 if (result.success) {
-                    showSuccess(id ? 'Comisión actualizada' : 'Comisión creada');
-                    setTimeout(() => window.location.href = '/comisiones', 1500);
+                    showSuccess(id ? '✅ Comisión actualizada exitosamente' : '✅ Comisión creada exitosamente');
+                    setTimeout(() => {
+                        window.location.href = '/comisiones';
+                    }, 1500);
                 } else {
-                    showError(result.message || 'Error al guardar');
+                    showError((result.message || 'Error al guardar la comisión'));
                 }
             } catch (error) {
-                console.error('Error:', error);
-                showError('Error de conexión');
+                console.error(' Error de conexión:', error);
+                showError('Error de conexión: ' + error.message);
             }
         }
 
-        function cancelarEdicion() { window.location.href = '/comisiones'; }
+        function cancelarEdicion() {
+            window.location.href = '/comisiones';
+        }
 
+        // Inicializar
         async function init() {
-            await loadSharedComponents();
+            loadSharedComponents();
             await cargarAsambleistas();
             
             const idEditar = obtenerIdDeURL();
-            if (idEditar) await cargarComisionParaEdicion(parseInt(idEditar));
+            if (idEditar) {
+                await cargarComisionParaEdicion(parseInt(idEditar));
+            }
         }
 
         init();
