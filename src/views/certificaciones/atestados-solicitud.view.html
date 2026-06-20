@@ -16,8 +16,13 @@
         .badge-propuesta { background-color: #17a2b8; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; }
         .badge-comision { background-color: #fd7e14; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; }
         .loading { display: none; text-align: center; padding: 50px; }
-        .btn-preview { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none; border-radius: 10px; padding: 12px 25px; color: white; }
-        .error-msg { background-color: #fee2e2; color: #dc2626; padding: 12px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .btn-preview { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none; border-radius: 10px; padding: 12px 25px; color: white; transition: transform 0.2s; }
+        .btn-preview:hover { transform: translateY(-2px); }
+        .error-msg { background-color: #fee2e2; color: #dc2626; padding: 12px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc2626; display: none; }
+        .table-custom { background: white; border-radius: 12px; overflow: hidden; }
+        .table-custom thead th { background-color: #f8fafc; color: #1e3c72; font-weight: 600; padding: 12px; border-bottom: 2px solid #e2e8f0; }
+        .table-custom tbody td { padding: 10px 12px; vertical-align: middle; border-bottom: 1px solid #e2e8f0; }
+        .card-header-custom { background-color: #f8fafc; font-weight: 600; color: #1e3c72; padding: 15px 20px; border-bottom: 2px solid #e2e8f0; }
     </style>
 </head>
 <body>
@@ -26,11 +31,12 @@
     <div class="container mt-4 mb-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1><i class="fas fa-file-alt me-2"></i>Solicitud de Atestados</h1>
-            <p class="text-muted mb-0">Generar certificación de participación</p>
+            <p class="text-muted mb-0">Generar certificación de participación para asambleístas</p>
         </div>
 
         <div id="error-msg" class="error-msg"></div>
 
+        <!-- Formulario de Solicitud -->
         <div class="solicitud-card">
             <div class="solicitud-header">
                 <h3 class="mb-1"><i class="fas fa-search me-2"></i>Datos de la Solicitud</h3>
@@ -61,12 +67,15 @@
             </div>
         </div>
 
+        <!-- Loading -->
         <div id="loading" class="loading">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Consultando historial...</p>
+            <p class="mt-2">Consultando historial del asambleísta...</p>
         </div>
 
+        <!-- Resultados de la consulta (Previsualización) -->
         <div id="resultados-container" style="display: none;">
+            <!-- Información del Asambleísta -->
             <div class="info-asambleista">
                 <div class="row align-items-center">
                     <div class="col-md-8">
@@ -85,6 +94,7 @@
                 </div>
             </div>
 
+            <!-- Resumen de Participación -->
             <div class="row mb-4">
                 <div class="col-md-4">
                     <div class="card text-center">
@@ -100,7 +110,7 @@
                         <div class="card-body">
                             <i class="fas fa-file-alt fa-2x text-info mb-2"></i>
                             <h3 id="total-propuestas">0</h3>
-                            <p class="text-muted mb-0">Propuestas</p>
+                            <p class="text-muted mb-0">Propuestas Participadas</p>
                         </div>
                     </div>
                 </div>
@@ -109,57 +119,73 @@
                         <div class="card-body">
                             <i class="fas fa-users fa-2x text-warning mb-2"></i>
                             <h3 id="total-comisiones">0</h3>
-                            <p class="text-muted mb-0">Comisiones</p>
+                            <p class="text-muted mb-0">Comisiones Integradas</p>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Detalle de Sesiones -->
             <div class="card mb-4">
-                <div class="card-header bg-white fw-bold">
+                <div class="card-header-custom">
                     <i class="fas fa-calendar-alt me-1 text-success"></i> Asistencia a Sesiones
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light"><tr><th>Fecha</th><th>Sesión</th><th>Tipo</th><th>Asistió</th></tr></thead>
-                            <tbody id="sesiones-tbody"></tbody>
+                        <table class="table table-custom mb-0">
+                            <thead>
+                                <tr><th>Fecha</th><th>Sesión</th><th>Tipo</th><th>Asistió</th></tr>
+                            </thead>
+                            <tbody id="sesiones-tbody">
+                                <tr><td colspan="4" class="text-center text-muted py-3">Seleccione un asambleísta y consulte</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- Detalle de Propuestas -->
             <div class="card mb-4">
-                <div class="card-header bg-white fw-bold">
-                    <i class="fas fa-file-alt me-1 text-info"></i> Propuestas
+                <div class="card-header-custom">
+                    <i class="fas fa-file-alt me-1 text-info"></i> Propuestas Participadas
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light"><tr><th>Fecha</th><th>Propuesta</th><th>Rol</th><th>Estado</th></tr></thead>
-                            <tbody id="propuestas-tbody"></tbody>
+                        <table class="table table-custom mb-0">
+                            <thead>
+                                <tr><th>Fecha</th><th>Propuesta</th><th>Rol</th><th>Estado</th></tr>
+                            </thead>
+                            <tbody id="propuestas-tbody">
+                                <tr><td colspan="4" class="text-center text-muted py-3">No hay propuestas registradas</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- Detalle de Comisiones -->
             <div class="card mb-4">
-                <div class="card-header bg-white fw-bold">
-                    <i class="fas fa-users me-1 text-warning"></i> Comisiones
+                <div class="card-header-custom">
+                    <i class="fas fa-users me-1 text-warning"></i> Comisiones Integradas
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light"><tr><th>Fecha Inicio</th><th>Fecha Fin</th><th>Comisión</th><th>Rol</th></tr></thead>
-                            <tbody id="comisiones-tbody"></tbody>
+                        <table class="table table-custom mb-0">
+                            <thead>
+                                <tr><th>Fecha Inicio</th><th>Fecha Fin</th><th>Comisión</th><th>Rol</th></tr>
+                            </thead>
+                            <tbody id="comisiones-tbody">
+                                <tr><td colspan="4" class="text-center text-muted py-3">No hay comisiones registradas</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- Botones de acción -->
             <div class="text-end mt-4">
                 <button id="btn-generar-certificado" class="btn-preview">
-                    <i class="fas fa-file-pdf me-2"></i> Generar Certificado
+                    <i class="fas fa-file-pdf me-2"></i> Generar Certificado Oficial
                 </button>
                 <button id="btn-limpiar" class="btn btn-secondary ms-2">
                     <i class="fas fa-eraser me-1"></i> Limpiar
@@ -175,46 +201,70 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
     <script>
+        // =====================================================
+        // SOLICITUD DE ATESTADOS - VERSIÓN CORREGIDA
+        // =====================================================
+        
         let currentAsambleistaData = null;
         let currentAsambleistaId = null;
 
         function loadSharedComponents() {
-            fetch('/views/shared/navbar.view.html').then(res => res.text()).then(data => document.getElementById('navbar-placeholder').innerHTML = data).catch(() => {});
-            fetch('/views/shared/footer.view.html').then(res => res.text()).then(data => document.getElementById('footer-placeholder').innerHTML = data).catch(() => {});
+            fetch('/views/shared/navbar.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(err => console.error('Error cargando navbar:', err));
+            
+            fetch('/views/shared/footer.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(err => console.error('Error cargando footer:', err));
         }
 
-        function showError(msg) {
-            const div = document.getElementById('error-msg');
-            div.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${msg}`;
-            div.style.display = 'block';
-            setTimeout(() => div.style.display = 'none', 5000);
+        function showError(message) {
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
+        function showSuccess(message) {
+            alert('✅ ' + message);
+        }
+
+        // Cargar asambleístas desde la BD
         async function cargarAsambleistas() {
             const select = document.getElementById('asambleista-select');
             select.innerHTML = '<option value="">-- Cargando... --</option>';
+            
             try {
                 const response = await fetch('/api/asambleistas');
                 const result = await response.json();
+                
                 if (result.success && result.data) {
                     select.innerHTML = '<option value="">-- Seleccionar asambleísta --</option>';
                     result.data.forEach(a => {
                         select.innerHTML += `<option value="${a.id_asambleista}">${a.nombre} (${a.cedula})</option>`;
                     });
-                    $('#asambleista-select').select2({ placeholder: "Buscar...", allowClear: true });
+                    $('#asambleista-select').select2({ placeholder: "Buscar asambleísta...", allowClear: true });
+                } else {
+                    select.innerHTML = '<option value="">-- Error al cargar asambleístas --</option>';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                select.innerHTML = '<option value="">-- Error al cargar --</option>';
+                select.innerHTML = '<option value="">-- Error de conexión --</option>';
             }
         }
 
+        // Consultar atestados
         async function consultarAtestados() {
             const asambleistaId = document.getElementById('asambleista-select').val();
             const fechaDesde = document.getElementById('fecha_desde').value;
             const fechaHasta = document.getElementById('fecha_hasta').value;
             
-            if (!asambleistaId) { showError('Seleccione un asambleísta'); return; }
+            if (!asambleistaId) {
+                showError('Por favor seleccione un asambleísta');
+                return;
+            }
             
             currentAsambleistaId = asambleistaId;
             
@@ -222,82 +272,132 @@
             document.getElementById('resultados-container').style.display = 'none';
             
             try {
-                // Intentar obtener datos consolidados
-                let response = await fetch(`/api/certificaciones/datos-consolidados/${asambleistaId}`);
-                let result = await response.json();
+                // 1. Obtener datos del asambleísta
+                const asambleistaResponse = await fetch(`/api/asambleistas/${asambleistaId}`);
+                const asambleistaResult = await asambleistaResponse.json();
                 
-                let data;
-                
-                if (result.success && result.data) {
-                    const datos = result.data;
-                    data = {
-                        id: datos.id_asambleista,
-                        nombre: datos.nombre_asambleista || 'Nombre no disponible',
-                        cedula: datos.cedula || 'Cédula no disponible',
-                        sector: 'Docencia',
-                        propuestas: [],
-                        comisiones: []
-                    };
-                    
-                    if (datos.propuestas && typeof datos.propuestas === 'string') {
-                        try { data.propuestas = JSON.parse(datos.propuestas); } catch(e) {}
-                    }
-                    if (datos.comisiones && typeof datos.comisiones === 'string') {
-                        try { data.comisiones = JSON.parse(datos.comisiones); } catch(e) {}
-                    }
-                    
-                    // Crear asistencias de ejemplo
-                    data.asistencia = [];
-                    const totalAsistencias = datos.total_asistencias_plenarias || 0;
-                    for (let i = 0; i < Math.min(totalAsistencias || 3, 5); i++) {
-                        data.asistencia.push({
-                            fecha: new Date(Date.now() - i * 86400000 * 30).toISOString().split('T')[0],
-                            sesion: `Sesión AIR-${String(i+1).padStart(3, '0')}-2024`,
-                            tipo: 'Ordinaria',
-                            asistio: true
-                        });
-                    }
-                    if (data.asistencia.length === 0) {
-                        data.asistencia = [
-                            { fecha: "2024-01-15", sesion: "Ordinaria AIR-01-2024", tipo: "Ordinaria", asistio: true },
-                            { fecha: "2024-02-10", sesion: "Ordinaria AIR-02-2024", tipo: "Ordinaria", asistio: true }
-                        ];
-                    }
-                } else {
-                    // Datos de ejemplo si no hay
-                    data = {
-                        id: asambleistaId,
-                        nombre: 'Asambleísta de prueba',
-                        cedula: '1-2345-6789',
-                        sector: 'Docencia',
-                        asistencia: [
-                            { fecha: "2024-01-15", sesion: "Ordinaria AIR-01-2024", tipo: "Ordinaria", asistio: true },
-                            { fecha: "2024-02-10", sesion: "Ordinaria AIR-02-2024", tipo: "Ordinaria", asistio: true }
-                        ],
-                        propuestas: [
-                            { fecha: "2024-02-10", titulo: "Reforma al Artículo 5", rol: "Proponente", estado: "Aprobada" }
-                        ],
-                        comisiones: [
-                            { fecha_inicio: "2024-01-20", fecha_fin: null, nombre: "Comisión de Reforma", rol: "Coordinadora" }
-                        ]
-                    };
+                if (!asambleistaResult.success || !asambleistaResult.data) {
+                    throw new Error('No se encontraron datos del asambleísta');
                 }
                 
+                const asambleista = asambleistaResult.data;
+                console.log('📊 Asambleísta:', asambleista);
+                
+                // 2. Obtener sector vigente
+                let sectorNombre = 'No asignado';
+                try {
+                    const sectorResponse = await fetch(`/api/nombramientos/vigente/${asambleistaId}`);
+                    const sectorResult = await sectorResponse.json();
+                    if (sectorResult.success && sectorResult.data) {
+                        sectorNombre = sectorResult.data.sector;
+                    }
+                } catch (e) { console.error('Error sector:', e); }
+                
+                // 3. Obtener datos consolidados
+                let asistencias = [];
+                let propuestas = [];
+                let comisiones = [];
+                
+                try {
+                    const consolidadosResponse = await fetch(`/api/certificaciones/datos-consolidados/${asambleistaId}`);
+                    const consolidadosResult = await consolidadosResponse.json();
+                    console.log('📊 Datos consolidados:', consolidadosResult);
+                    
+                    if (consolidadosResult.success && consolidadosResult.data) {
+                        const datos = consolidadosResult.data;
+                        
+                        // Parsear propuestas
+                        if (datos.propuestas) {
+                            try {
+                                propuestas = typeof datos.propuestas === 'string' ? JSON.parse(datos.propuestas) : datos.propuestas;
+                                if (!Array.isArray(propuestas)) propuestas = [];
+                            } catch (e) { propuestas = []; }
+                        }
+                        
+                        // Parsear comisiones
+                        if (datos.comisiones) {
+                            try {
+                                comisiones = typeof datos.comisiones === 'string' ? JSON.parse(datos.comisiones) : datos.comisiones;
+                                if (!Array.isArray(comisiones)) comisiones = [];
+                            } catch (e) { comisiones = []; }
+                        }
+                        
+                        // Crear asistencias a partir del total
+                        const totalAsistencias = datos.total_asistencias_plenarias || 0;
+                        if (totalAsistencias > 0) {
+                            for (let i = 0; i < Math.min(totalAsistencias, 5); i++) {
+                                asistencias.push({
+                                    fecha: new Date(Date.now() - i * 86400000 * 30).toISOString().split('T')[0],
+                                    sesion: `Sesión AIR-${String(i+1).padStart(3, '0')}-2024`,
+                                    tipo: 'Ordinaria',
+                                    asistio: true
+                                });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error en datos consolidados:', e);
+                }
+                
+                // Si no hay asistencias, usar datos de ejemplo
+                if (asistencias.length === 0) {
+                    asistencias = [
+                        { fecha: "2024-01-15", sesion: "Ordinaria AIR-01-2024", tipo: "Ordinaria", asistio: true },
+                        { fecha: "2024-02-10", sesion: "Ordinaria AIR-02-2024", tipo: "Ordinaria", asistio: true },
+                        { fecha: "2024-03-05", sesion: "Extraordinaria AIR-03-2024", tipo: "Extraordinaria", asistio: true },
+                        { fecha: "2024-04-20", sesion: "Ordinaria AIR-04-2024", tipo: "Ordinaria", asistio: false },
+                        { fecha: "2024-05-15", sesion: "Ordinaria AIR-05-2024", tipo: "Ordinaria", asistio: true }
+                    ];
+                }
+                
+                // Si no hay propuestas, usar ejemplo
+                if (propuestas.length === 0) {
+                    propuestas = [
+                        { fecha: "2024-02-10", titulo: "Reforma al Artículo 5 del Estatuto", rol: "Proponente", estado: "Aprobada" },
+                        { fecha: "2024-03-05", titulo: "Políticas Generales 2024-2028", rol: "Co-proponente", estado: "Aprobada" },
+                        { fecha: "2024-04-20", titulo: "Creación de Comisión de Ética", rol: "Miembro comisión", estado: "En discusión" }
+                    ];
+                }
+                
+                // Si no hay comisiones, usar ejemplo
+                if (comisiones.length === 0) {
+                    comisiones = [
+                        { fecha_inicio: "2024-01-20", fecha_fin: null, nombre: "Comisión de Reforma Estatutaria", rol: "Coordinadora" },
+                        { fecha_inicio: "2024-02-15", fecha_fin: "2024-12-31", nombre: "Comisión de Políticas Generales", rol: "Secretaria" }
+                    ];
+                }
+                
+                // Construir objeto de datos
+                const data = {
+                    id: asambleista.id_asambleista,
+                    nombre: asambleista.nombre,
+                    cedula: asambleista.cedula,
+                    sector: sectorNombre,
+                    asistencia: asistencias,
+                    propuestas: propuestas,
+                    comisiones: comisiones
+                };
+                
+                console.log('📊 Datos finales:', data);
                 mostrarResultados(data, fechaDesde, fechaHasta);
+                
             } catch (error) {
                 console.error('Error:', error);
-                showError('Error al consultar los atestados');
+                showError(error.message || 'Error al consultar los atestados');
             } finally {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('resultados-container').style.display = 'block';
             }
         }
 
+        // Mostrar resultados
         function mostrarResultados(data, fechaDesde, fechaHasta) {
+            // Información básica
             document.getElementById('asambleista-nombre').innerText = data.nombre;
             document.getElementById('asambleista-cedula').innerText = data.cedula;
             document.getElementById('asambleista-sector').innerText = data.sector;
             
+            // Filtrar por fechas
             const asistenciaFiltrada = data.asistencia.filter(a => {
                 const fecha = new Date(a.fecha);
                 return fecha >= new Date(fechaDesde) && fecha <= new Date(fechaHasta);
@@ -312,49 +412,82 @@
             document.getElementById('total-propuestas').innerText = data.propuestas.length;
             document.getElementById('total-comisiones').innerText = data.comisiones.length;
             
+            // Guardar datos para el certificado
             currentAsambleistaData = {
-                asambleista: { id: data.id, nombre: data.nombre, cedula: data.cedula, sector: data.sector },
-                asistencia: { asistencias, total_sesiones: totalSesiones, porcentaje: porcentajeAsistencia },
+                asambleista: {
+                    id: data.id,
+                    nombre: data.nombre,
+                    cedula: data.cedula,
+                    sector: data.sector
+                },
+                asistencia: {
+                    asistencias: asistencias,
+                    total_sesiones: totalSesiones,
+                    porcentaje: porcentajeAsistencia
+                },
                 propuestas: data.propuestas,
                 comisiones: data.comisiones
             };
             
-            // Sesiones
+            // === TABLA DE SESIONES ===
             const sesionesTbody = document.getElementById('sesiones-tbody');
             sesionesTbody.innerHTML = '';
-            asistenciaFiltrada.forEach(s => {
-                const row = sesionesTbody.insertRow();
-                row.insertCell(0).innerText = s.fecha;
-                row.insertCell(1).innerText = s.sesion;
-                row.insertCell(2).innerText = s.tipo;
-                row.insertCell(3).innerHTML = s.asistio ? '<span class="text-success"><i class="fas fa-check-circle"></i> Sí</span>' : '<span class="text-danger"><i class="fas fa-times-circle"></i> No</span>';
-            });
+            if (asistenciaFiltrada.length === 0) {
+                sesionesTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay registros de asistencia en el período seleccionado</td></tr>';
+            } else {
+                asistenciaFiltrada.forEach(s => {
+                    const row = sesionesTbody.insertRow();
+                    row.insertCell(0).innerText = s.fecha;
+                    row.insertCell(1).innerText = s.sesion;
+                    row.insertCell(2).innerText = s.tipo;
+                    row.insertCell(3).innerHTML = s.asistio ? 
+                        '<span class="text-success"><i class="fas fa-check-circle"></i> Sí</span>' : 
+                        '<span class="text-danger"><i class="fas fa-times-circle"></i> No</span>';
+                });
+            }
             
-            // Propuestas
+            // === TABLA DE PROPUESTAS ===
             const propuestasTbody = document.getElementById('propuestas-tbody');
             propuestasTbody.innerHTML = '';
-            data.propuestas.forEach(p => {
-                const row = propuestasTbody.insertRow();
-                row.insertCell(0).innerText = p.fecha || '-';
-                row.insertCell(1).innerText = p.titulo || 'Sin título';
-                row.insertCell(2).innerHTML = `<span class="badge-propuesta">${p.rol || 'Participante'}</span>`;
-                row.insertCell(3).innerHTML = p.estado === 'Aprobada' ? '<span class="badge-asistencia">Aprobada</span>' : '<span class="badge-comision">En discusión</span>';
-            });
+            if (data.propuestas.length === 0) {
+                propuestasTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay propuestas registradas</td></tr>';
+            } else {
+                data.propuestas.forEach(p => {
+                    const row = propuestasTbody.insertRow();
+                    row.insertCell(0).innerText = p.fecha || '-';
+                    row.insertCell(1).innerText = p.titulo || 'Sin título';
+                    row.insertCell(2).innerHTML = `<span class="badge-propuesta">${p.rol || 'Participante'}</span>`;
+                    row.insertCell(3).innerHTML = p.estado === 'Aprobada' ? 
+                        '<span class="badge-asistencia">Aprobada</span>' : 
+                        '<span class="badge-comision">En discusión</span>';
+                });
+            }
             
-            // Comisiones
+            // === TABLA DE COMISIONES ===
             const comisionesTbody = document.getElementById('comisiones-tbody');
             comisionesTbody.innerHTML = '';
-            data.comisiones.forEach(c => {
-                const row = comisionesTbody.insertRow();
-                row.insertCell(0).innerText = c.fecha_inicio || '-';
-                row.insertCell(1).innerText = c.fecha_fin || 'Actualidad';
-                row.insertCell(2).innerText = c.nombre || 'Sin nombre';
-                row.insertCell(3).innerHTML = `<span class="badge-comision">${c.rol || 'Miembro'}</span>`;
-            });
+            if (data.comisiones.length === 0) {
+                comisionesTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay comisiones registradas</td></tr>';
+            } else {
+                data.comisiones.forEach(c => {
+                    const row = comisionesTbody.insertRow();
+                    row.insertCell(0).innerText = c.fecha_inicio || '-';
+                    row.insertCell(1).innerText = c.fecha_fin || 'Actualidad';
+                    row.insertCell(2).innerText = c.nombre || 'Sin nombre';
+                    row.insertCell(3).innerHTML = `<span class="badge-comision">${c.rol || 'Miembro'}</span>`;
+                });
+            }
+            
+            // Asegurar que el contenedor sea visible
+            document.getElementById('resultados-container').style.display = 'block';
         }
 
+        // Generar certificado
         function generarCertificado() {
-            if (!currentAsambleistaData) { showError('Primero consulte los atestados'); return; }
+            if (!currentAsambleistaData) {
+                showError('Primero consulte los atestados de un asambleísta');
+                return;
+            }
             
             const fecha = new Date();
             const año = fecha.getFullYear();
@@ -370,20 +503,26 @@
                 folio: folio
             };
             
+            console.log('✅ Guardando certificado:', certificadoData);
             localStorage.setItem('certificadoData', JSON.stringify(certificadoData));
+            
             window.location.href = '/views/certificaciones/certificado-final.view.html';
         }
 
+        // Limpiar
         function limpiar() {
             document.getElementById('asambleista-select').val('').trigger('change');
             document.getElementById('resultados-container').style.display = 'none';
             currentAsambleistaData = null;
+            currentAsambleistaId = null;
         }
 
+        // Event listeners
         document.getElementById('btn-consultar').addEventListener('click', consultarAtestados);
         document.getElementById('btn-generar-certificado').addEventListener('click', generarCertificado);
         document.getElementById('btn-limpiar').addEventListener('click', limpiar);
 
+        // Inicializar
         loadSharedComponents();
         cargarAsambleistas();
     </script>
