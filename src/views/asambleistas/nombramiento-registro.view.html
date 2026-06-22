@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Nombramiento - Asamblea Universitaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+        .required-field::after {
+            content: "*";
+            color: #dc3545;
+            margin-left: 4px;
+        }
+        .help-text {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4">
+        <div class="form-container">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-gavel me-2"></i>Registrar Nuevo Nombramiento</h3>
+                    <p class="mb-0 opacity-75">Asignar sector y puesto a un asambleísta</p>
+                </div>
+                <div class="card-body">
+                    <form id="nombramiento-form">
+                        <!-- Asambleísta -->
+                        <div class="mb-3">
+                            <label for="asambleista_id" class="form-label fw-bold required-field">Asambleísta</label>
+                            <select class="form-select" id="asambleista_id" required>
+                                <option value="">-- Seleccionar asambleísta --</option>
+                            </select>
+                            <div class="help-text">Solo se muestran asambleístas activos</div>
+                        </div>
+
+                        <!-- Sector -->
+                        <div class="mb-3">
+                            <label for="sector_id" class="form-label fw-bold required-field">Sector</label>
+                            <select class="form-select" id="sector_id" required>
+                                <option value="">-- Seleccionar sector --</option>
+                            </select>
+                            <div class="help-text">Docente, Estudiante o Administrativo</div>
+                        </div>
+
+                        <!-- Puesto -->
+                        <div class="mb-3">
+                            <label for="id_puesto" class="form-label fw-bold required-field">Puesto</label>
+                            <select class="form-select" id="id_puesto" required>
+                                <option value="">-- Seleccionar puesto --</option>
+                            </select>
+                        </div>
+
+                        <!-- Resolución -->
+                        <div class="mb-3">
+                            <label for="resolucion_id" class="form-label fw-bold">Resolución</label>
+                            <input type="text" class="form-control" id="resolucion_id" placeholder="Ej: RES-2024-001">
+                            <div class="help-text">Documento que avala el nombramiento (opcional)</div>
+                        </div>
+
+                        <!-- Fechas -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fecha_inicio" class="form-label fw-bold required-field">Fecha Inicio</label>
+                                <input type="date" class="form-control" id="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="fecha_fin" class="form-label fw-bold">Fecha Fin</label>
+                                <input type="date" class="form-control" id="fecha_fin">
+                                <div class="help-text">Dejar en blanco si es indefinido</div>
+                            </div>
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label fw-bold">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" rows="3" placeholder="Notas adicionales sobre el nombramiento..."></textarea>
+                        </div>
+
+                        <!-- Alerta de validación -->
+                        <div id="alerta-traslape" class="alert alert-warning" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span id="mensaje-traslape"></span>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="/nombramientos" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="btn-submit">
+                                <i class="fas fa-save me-1"></i> Registrar Nombramiento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Procesando...</span>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '/api';
+        
+        // Mostrar/ocultar loading
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            if (show) {
+                overlay.classList.add('active');
+            } else {
+                overlay.classList.remove('active');
+            }
+        }
+        
+        // Cargar navbar y footer
+        function loadSharedComponents() {
+            fetch('/shared/navbar.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(err => console.error('Error cargando navbar:', err));
+            
+            fetch('/shared/footer.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(err => console.error('Error cargando footer:', err));
+        }
+        
+        // Cargar asambleístas
+        async function loadAsambleistas() {
+            try {
+                const response = await fetch(`${API_BASE}/asambleistas`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    const select = document.getElementById('asambleista_id');
+                    result.data.forEach(a => {
+                        select.innerHTML += `<option value="${a.asambleista_id}">${a.nombres} ${a.apellidos || ''} (${a.cedula})</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando asambleístas:', error);
+            }
+        }
+        
+        // Cargar sectores (catálogo)
+        async function loadSectores() {
+            try {
+                const response = await fetch(`${API_BASE}/catalogos/sectores`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    const select = document.getElementById('sector_id');
+                    result.data.forEach(s => {
+                        select.innerHTML += `<option value="${s.id_sector}">${s.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                // Fallback: datos estáticos
+                const select = document.getElementById('sector_id');
+                select.innerHTML += `
+                    <option value="1">Docente</option>
+                    <option value="2">Estudiante</option>
+                    <option value="3">Administrativo</option>
+                `;
+            }
+        }
+        
+        // Cargar puestos (catálogo)
+        async function loadPuestos() {
+            try {
+                const response = await fetch(`${API_BASE}/catalogos/puestos`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    const select = document.getElementById('id_puesto');
+                    result.data.forEach(p => {
+                        select.innerHTML += `<option value="${p.id_puesto}">${p.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                // Fallback
+                const select = document.getElementById('id_puesto');
+                select.innerHTML += `
+                    <option value="1">Presidente</option>
+                    <option value="2">Vicepresidente</option>
+                    <option value="3">Secretario</option>
+                    <option value="4">Vocal</option>
+                `;
+            }
+        }
+        
+        // Validar traslape en tiempo real
+        let debounceTimer;
+        async function checkTraslape() {
+            const asambleista_id = document.getElementById('asambleista_id').value;
+            const id_puesto = document.getElementById('id_puesto').value;
+            const fecha_inicio = document.getElementById('fecha_inicio').value;
+            const fecha_fin = document.getElementById('fecha_fin').value;
+            
+            if (!asambleista_id || !id_puesto || !fecha_inicio) {
+                document.getElementById('alerta-traslape').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/nombramientos/validar-traslape`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ asambleista_id, id_puesto, fecha_inicio, fecha_fin })
+                });
+                const result = await response.json();
+                
+                if (!result.success || !result.data?.es_valido) {
+                    document.getElementById('mensaje-traslape').innerHTML = result.message || 'El asambleísta ya tiene un nombramiento activo para este puesto en el período indicado';
+                    document.getElementById('alerta-traslape').style.display = 'block';
+                    document.getElementById('btn-submit').disabled = true;
+                } else {
+                    document.getElementById('alerta-traslape').style.display = 'none';
+                    document.getElementById('btn-submit').disabled = false;
+                }
+            } catch (error) {
+                console.error('Error validando traslape:', error);
+            }
+        }
+        
+        // Enviar formulario
+        document.getElementById('nombramiento-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                asambleista_id: document.getElementById('asambleista_id').value,
+                sector_id: document.getElementById('sector_id').value,
+                id_puesto: document.getElementById('id_puesto').value,
+                resolucion_id: document.getElementById('resolucion_id').value || null,
+                fecha_inicio: document.getElementById('fecha_inicio').value,
+                fecha_fin: document.getElementById('fecha_fin').value || null,
+                observaciones: document.getElementById('observaciones').value || null
+            };
+            
+            // Validaciones básicas
+            if (!formData.asambleista_id || !formData.sector_id || !formData.id_puesto || !formData.fecha_inicio) {
+                alert('Por favor complete todos los campos obligatorios (*)');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/nombramientos/registrar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Nombramiento registrado exitosamente');
+                    window.location.href = '/nombramientos';
+                } else {
+                    alert('✕ Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al registrar el nombramiento');
+            } finally {
+                showLoading(false);
+            }
+        });
+        
+        // Event listeners para validación en tiempo real
+        document.getElementById('asambleista_id').addEventListener('change', () => setTimeout(checkTraslape, 100));
+        document.getElementById('id_puesto').addEventListener('change', () => setTimeout(checkTraslape, 100));
+        document.getElementById('fecha_inicio').addEventListener('change', checkTraslape);
+        document.getElementById('fecha_fin').addEventListener('change', checkTraslape);
+        
+        // Inicializar
+        loadSharedComponents();
+        loadAsambleistas();
+        loadSectores();
+        loadPuestos();
+    </script>
+</body>
+</html>

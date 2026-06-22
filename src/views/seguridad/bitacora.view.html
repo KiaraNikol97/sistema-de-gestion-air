@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitácora de Auditoría - AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f5f7fb; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        .page-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .table-custom thead th {
+            background-color: #f8fafc;
+            color: #1e3c72;
+            font-weight: 600;
+            padding: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .table-custom tbody td {
+            padding: 12px 15px;
+            vertical-align: middle;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .badge-insert { background-color: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; }
+        .badge-update { background-color: #f59e0b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; }
+        .badge-delete { background-color: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; }
+        .badge-login { background-color: #3b82f6; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; }
+        
+        .filter-bar {
+            background: rgb(77, 36, 241);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .btn-refresh {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 20px;
+            color: white;
+        }
+        
+        .loading { text-align: center; padding: 40px; }
+        .empty-state { text-align: center; padding: 60px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4 mb-5">
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-history me-3"></i>Bitácora de Auditoría</h1>
+                    <p>Registro de todas las acciones realizadas en el sistema</p>
+                </div>
+                <button class="btn-refresh" onclick="cargarBitacora()">
+                    <i class="fas fa-sync-alt me-2"></i>Refrescar
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+            <p class="mt-3 text-muted">Cargando registros...</p>
+        </div>
+
+        <div id="error-msg" class="alert alert-warning" style="display: none;">
+            <i class="fas fa-info-circle me-2"></i>
+            <span id="error-text"></span>
+        </div>
+
+        <div class="table-container">
+            <div class="table-responsive">
+                <table class="table table-custom mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Tabla</th>
+                            <th>Detalle</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bitacora-tbody">
+                        <tr><td colspan="6" class="empty-state"><i class="fas fa-database fa-3x mb-3 opacity-50"></i><p>Cargando registros...</p></td</tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function loadSharedComponents() {
+            fetch('/views/shared/navbar.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(err => console.error('Error:', err));
+            
+            fetch('/views/shared/footer.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(err => console.error('Error:', err));
+        }
+
+        function getBadge(accion) {
+            const a = (accion || '').toUpperCase();
+            if (a.includes('INSERT')) return '<span class="badge-insert"><i class="fas fa-plus me-1"></i>INSERT</span>';
+            if (a.includes('UPDATE')) return '<span class="badge-update"><i class="fas fa-edit me-1"></i>UPDATE</span>';
+            if (a.includes('DELETE')) return '<span class="badge-delete"><i class="fas fa-trash me-1"></i>DELETE</span>';
+            if (a.includes('LOGIN')) return '<span class="badge-login"><i class="fas fa-sign-in-alt me-1"></i>LOGIN</span>';
+            return `<span class="badge bg-secondary">${accion || '?'}</span>`;
+        }
+
+        async function cargarBitacora() {
+            const loading = document.getElementById('loading');
+            const tbody = document.getElementById('bitacora-tbody');
+            const errorDiv = document.getElementById('error-msg');
+            
+            loading.style.display = 'block';
+            errorDiv.style.display = 'none';
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="spinner-border text-primary"></div><p class="mt-2">Cargando...</p></td></tr>';
+            
+            try {
+                const response = await fetch('/api/bitacora');
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.data && result.data.length > 0) {
+                        tbody.innerHTML = '';
+                        result.data.forEach(log => {
+                            const row = tbody.insertRow();
+                            const fecha = log.fecha_hora ? new Date(log.fecha_hora).toLocaleString('es-ES') : '-';
+                            row.insertCell(0).innerHTML = `<span class="font-monospace small">${fecha}</span>`;
+                            row.insertCell(1).innerHTML = `<strong>${log.username || 'Sistema'}</strong>`;
+                            row.insertCell(2).innerHTML = getBadge(log.accion);
+                            row.insertCell(3).innerHTML = `<code class="small">${log.tabla_afectada || '-'}</code>`;
+                            row.insertCell(4).innerHTML = `<small>${log.detalle?.substring(0, 80) || '-'}${log.detalle?.length > 80 ? '...' : ''}</small>`;
+                            row.insertCell(5).innerHTML = `<span class="font-monospace small">${log.ip_origen || '-'}</span>`;
+                        });
+                    } else {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="empty-state">
+                                    <i class="fas fa-database fa-3x mb-3 opacity-50"></i>
+                                    <p>No hay registros en la bitácora</p>
+                                    <small class="text-muted">Los registros aparecerán cuando se realicen acciones en el sistema</small>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning opacity-50"></i>
+                                <p>No se pudieron cargar los registros</p>
+                                <button class="btn btn-sm btn-primary mt-2" onclick="cargarBitacora()">
+                                    <i class="fas fa-sync-alt me-1"></i> Reintentar
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    if (result.message) {
+                        errorDiv.style.display = 'block';
+                        document.getElementById('error-text').innerText = result.message;
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <i class="fas fa-plug fa-3x mb-3 text-danger opacity-50"></i>
+                            <p>Error de conexión con el servidor</p>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="cargarBitacora()">
+                                <i class="fas fa-sync-alt me-1"></i> Reintentar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                errorDiv.style.display = 'block';
+                document.getElementById('error-text').innerText = 'Error de conexión. Asegúrate que el servidor esté corriendo.';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        loadSharedComponents();
+        cargarBitacora();
+    </script>
+</body>
+</html>

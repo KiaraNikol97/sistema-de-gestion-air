@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Asambleístas - AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f5f7fb; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        .form-container { max-width: 1000px; margin: 0 auto; }
+        
+        .card-custom {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px 25px;
+        }
+        
+        .card-header-custom h2 { margin: 0; font-size: 1.3rem; }
+        .card-header-custom p { margin: 5px 0 0; opacity: 0.85; font-size: 0.85rem; }
+        
+        .card-body-custom { padding: 25px; }
+        
+        .form-label { font-weight: 600; color: #1e3c72; margin-bottom: 8px; }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 10px 15px;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 3px rgba(30,60,114,0.1);
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            color: white;
+            transition: transform 0.2s;
+        }
+        
+        .btn-primary-custom:hover { transform: translateY(-2px); }
+        
+        .btn-secondary-custom {
+            background: #6c757d;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            color: white;
+        }
+        
+        .btn-danger-custom {
+            background: #dc3545;
+            border: none;
+            border-radius: 8px;
+            padding: 5px 12px;
+            color: white;
+            font-size: 0.8rem;
+        }
+        
+        .badge-vigente { background-color: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; }
+        .badge-historico { background-color: #6c757d; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; }
+        
+        .table-custom { background: white; border-radius: 12px; overflow: hidden; }
+        .table-custom thead th { background-color: #f8fafc; color: #1e3c72; font-weight: 600; padding: 12px; }
+        .table-custom tbody td { padding: 10px 12px; vertical-align: middle; }
+        
+        .volver-link { display: inline-block; margin-bottom: 20px; color: #1e3c72; text-decoration: none; font-weight: 500; }
+        .volver-link:hover { text-decoration: underline; }
+        
+        .error-msg { background-color: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #dc2626; display: none; }
+        .success-msg { background-color: #d1fae5; color: #065f46; padding: 12px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #10b981; display: none; }
+        
+        .loading-small { display: inline-block; width: 1rem; height: 1rem; border: 2px solid #f3f3f3; border-top: 2px solid #1e3c72; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container mt-4 mb-5">
+        <div class="form-container">
+            <a href="/asambleistas" class="volver-link"><i class="fas fa-arrow-left me-2"></i>Volver al listado</a>
+
+            <div id="error-msg" class="error-msg"></div>
+            <div id="success-msg" class="success-msg"></div>
+
+            <!-- Tarjeta: Datos Personales -->
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h2><i class="fas fa-user me-2"></i>Datos Personales</h2>
+                    <p>Complete la información del asambleísta</p>
+                </div>
+                <div class="card-body-custom">
+                    <form id="asambleista-form" onsubmit="return false;">
+                        <input type="hidden" id="asambleista_id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Cédula <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="cedula" placeholder="0-0000-0000" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Correo institucional</label>
+                                <input type="email" class="form-control" id="correo" placeholder="usuario@tec.ac.cr">
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Nombre completo <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nombre" placeholder="Nombres y apellidos" required>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn-secondary-custom me-2" id="btn-cancelar" style="display:none;" onclick="cancelarEdicion()">Cancelar</button>
+                            <button type="button" class="btn-primary-custom" id="btn-submit" onclick="guardarAsambleista()">Registrar Asambleísta</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tarjeta: Nombramientos (solo visible en edición) -->
+            <div class="card-custom" id="nombramientos-section" style="display: none;">
+                <div class="card-header-custom">
+                    <h2><i class="fas fa-id-card me-2"></i>Gestión de Nombramientos</h2>
+                    <p>Historial de sectores y puestos del asambleísta</p>
+                </div>
+                <div class="card-body-custom">
+                    <div id="nombramientos-loading" class="text-center py-3" style="display: none;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-custom mb-4">
+                            <thead>
+                                <tr>
+                                    <th>Sector</th>
+                                    <th>Puesto</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Fecha Fin</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nombramientos-lista">
+                                <tr><td colspan="6" class="text-center text-muted py-4">Seleccione un asambleísta para ver sus nombramientos</td</th
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="mb-3"><i class="fas fa-plus-circle me-2"></i>Agregar nuevo nombramiento</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Sector</label>
+                            <select id="nombramiento_sector" class="form-select">
+                                <option value="">-- Seleccione --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Puesto</label>
+                            <select id="nombramiento_puesto" class="form-select">
+                                <option value="">-- Seleccione --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Fecha inicio</label>
+                            <input type="date" id="nombramiento_fecha_inicio" class="form-control">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Fecha fin</label>
+                            <input type="date" id="nombramiento_fecha_fin" class="form-control">
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button class="btn-primary-custom" onclick="agregarNombramiento()">
+                            <i class="fas fa-save me-1"></i> Agregar nombramiento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // =====================================================
+        // VARIABLES GLOBALES
+        // =====================================================
+        let currentAsambleistaId = null;
+
+        // =====================================================
+        // FUNCIONES COMPARTIDAS
+        // =====================================================
+        function loadSharedComponents() {
+            fetch('/views/shared/navbar.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('navbar-placeholder').innerHTML = data)
+                .catch(() => {
+                    document.getElementById('navbar-placeholder').innerHTML = `
+                        <nav class="navbar navbar-dark bg-dark p-3">
+                            <a class="navbar-brand" href="#">AIR - Sistema Legislativo</a>
+                        </nav>
+                    `;
+                });
+            
+            fetch('/views/shared/footer.view.html')
+                .then(res => res.text())
+                .then(data => document.getElementById('footer-placeholder').innerHTML = data)
+                .catch(() => {
+                    document.getElementById('footer-placeholder').innerHTML = `
+                        <footer class="text-center text-muted py-3 mt-4 border-top">
+                            <small>Asamblea Institucional Representativa - TEC</small>
+                        </footer>
+                    `;
+                });
+        }
+
+        function showError(msg) {
+            const div = document.getElementById('error-msg');
+            div.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${msg}`;
+            div.style.display = 'block';
+            setTimeout(() => div.style.display = 'none', 5000);
+        }
+
+        function showSuccess(msg) {
+            const div = document.getElementById('success-msg');
+            div.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${msg}`;
+            div.style.display = 'block';
+            setTimeout(() => div.style.display = 'none', 3000);
+        }
+
+        // =====================================================
+        // CARGAR CATÁLOGOS
+        // =====================================================
+        async function cargarSectores() {
+            try {
+                const response = await fetch('/api/catalogos/sectores');
+                const data = await response.json();
+                if (data.success) {
+                    const select = document.getElementById('nombramiento_sector');
+                    select.innerHTML = '<option value="">-- Seleccione sector --</option>';
+                    data.data.forEach(s => {
+                        select.innerHTML += `<option value="${s.id_sector}">${s.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando sectores:', error);
+            }
+        }
+
+        async function cargarPuestos() {
+            try {
+                const response = await fetch('/api/catalogos/puestos');
+                const data = await response.json();
+                if (data.success) {
+                    const select = document.getElementById('nombramiento_puesto');
+                    select.innerHTML = '<option value="">-- Seleccione puesto --</option>';
+                    data.data.forEach(p => {
+                        select.innerHTML += `<option value="${p.id_puesto}">${p.nombre}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando puestos:', error);
+            }
+        }
+
+        // =====================================================
+        // OBTENER ID DE LA URL
+        // =====================================================
+        function obtenerIdDeURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+
+        // =====================================================
+        // CARGAR ASAMBLEÍSTA PARA EDICIÓN
+        // =====================================================
+        async function cargarAsambleistaParaEdicion(id) {
+            currentAsambleistaId = id;
+            
+            try {
+                const response = await fetch(`/api/asambleistas/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const a = data.data;
+                    document.getElementById('asambleista_id').value = a.id_asambleista;
+                    document.getElementById('nombre').value = a.nombre;
+                    document.getElementById('cedula').value = a.cedula;
+                    document.getElementById('correo').value = a.correo_institucional || '';
+                    document.getElementById('btn-submit').innerHTML = '<i class="fas fa-save me-1"></i> Actualizar Asambleísta';
+                    document.getElementById('btn-cancelar').style.display = 'inline-block';
+                    document.getElementById('nombramientos-section').style.display = 'block';
+                    cargarNombramientos(a.id_asambleista);
+                } else {
+                    showError('Error al cargar los datos del asambleísta');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión al cargar el asambleísta');
+            }
+        }
+
+        // =====================================================
+        // CARGAR NOMBRAMIENTOS
+        // =====================================================
+        async function cargarNombramientos(asambleistaId) {
+            const tbody = document.getElementById('nombramientos-lista');
+            const loading = document.getElementById('nombramientos-loading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/nombramientos/historial/${asambleistaId}`);
+                const data = await response.json();
+                loading.style.display = 'none';
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    tbody.innerHTML = '';
+                    data.data.forEach(n => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).innerText = n.sector || '-';
+                        row.insertCell(1).innerText = n.puesto || '-';
+                        row.insertCell(2).innerText = n.fecha_inicio || '-';
+                        row.insertCell(3).innerText = n.fecha_fin || 'Actual';
+                        row.insertCell(4).innerHTML = n.estado_real === 'Vigente' ? 
+                            '<span class="badge-vigente">VIGENTE</span>' : 
+                            '<span class="badge-historico">HISTÓRICO</span>';
+                        row.insertCell(5).innerHTML = n.estado_real === 'Vigente' ? 
+                            `<button class="btn-danger-custom" onclick="finalizarNombramiento(${n.id_nombramiento})">Finalizar</button>` : 
+                            '-';
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No hay nombramientos registrados</td></tr>';
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-danger">Error al cargar nombramientos</td></tr>';
+            }
+        }
+
+        // =====================================================
+        // FINALIZAR NOMBRAMIENTO
+        // =====================================================
+        async function finalizarNombramiento(id) {
+            const fechaFin = prompt('Ingrese la fecha de finalización (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!fechaFin) return;
+            
+            try {
+                const response = await fetch(`/api/nombramientos/${id}/finalizar`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fecha_fin: fechaFin })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Nombramiento finalizado exitosamente');
+                    cargarNombramientos(currentAsambleistaId);
+                } else {
+                    showError(data.message || 'Error al finalizar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión');
+            }
+        }
+
+        // =====================================================
+        // GUARDAR ASAMBLEÍSTA (CREAR O ACTUALIZAR)
+        // =====================================================
+        async function guardarAsambleista() {
+            const id = document.getElementById('asambleista_id').value;
+            const nombre = document.getElementById('nombre').value;
+            const cedula = document.getElementById('cedula').value;
+            const correo = document.getElementById('correo').value;
+            
+            if (!nombre || !cedula) {
+                showError('Nombre y cédula son obligatorios');
+                return;
+            }
+            
+            // Validar formato de cédula
+            const formatoCedula = /^[0-9]-[0-9]{4}-[0-9]{4}$/;
+            if (!formatoCedula.test(cedula)) {
+                showError('Formato de cédula inválido (Ej: 1-2345-6789)');
+                return;
+            }
+            
+            try {
+                let url, method;
+                
+                if (id) {
+                    // MODO EDICIÓN - Usar PUT con ID en URL
+                    url = `/api/asambleistas/editar/${id}`;
+                    method = 'POST';
+                } else {
+                    // MODO REGISTRO
+                    url = '/api/asambleistas/guardar';
+                    method = 'POST';
+                }
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        cedula, 
+                        nombre, 
+                        correo_institucional: correo 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(data.message);
+                    if (!id) {
+                        // Si fue registro, redirigir al listado
+                        setTimeout(() => {
+                            window.location.href = '/asambleistas';
+                        }, 1500);
+                    } else {
+                        // Si fue edición, recargar los datos
+                        cancelarEdicion();
+                    }
+                } else {
+                    showError(data.message || 'Error al guardar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión con el servidor');
+            }
+        }
+
+        // =====================================================
+        // AGREGAR NOMBRAMIENTO
+        // =====================================================
+        async function agregarNombramiento() {
+            const asambleistaId = document.getElementById('asambleista_id').value;
+            const sector_id = document.getElementById('nombramiento_sector').value;
+            const id_puesto = document.getElementById('nombramiento_puesto').value;
+            const fecha_inicio = document.getElementById('nombramiento_fecha_inicio').value;
+            const fecha_fin = document.getElementById('nombramiento_fecha_fin').value || null;
+            
+            if (!asambleistaId) {
+                showError('Primero debe guardar el asambleísta');
+                return;
+            }
+            
+            if (!sector_id || !id_puesto || !fecha_inicio) {
+                showError('Complete sector, puesto y fecha de inicio');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/nombramientos/registrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        asambleista_id: parseInt(asambleistaId),
+                        sector_id: parseInt(sector_id),
+                        id_puesto: parseInt(id_puesto),
+                        fecha_inicio: fecha_inicio,
+                        fecha_fin: fecha_fin
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Nombramiento agregado correctamente');
+                    // Limpiar formulario
+                    document.getElementById('nombramiento_sector').value = '';
+                    document.getElementById('nombramiento_puesto').value = '';
+                    document.getElementById('nombramiento_fecha_inicio').value = '';
+                    document.getElementById('nombramiento_fecha_fin').value = '';
+                    // Recargar lista
+                    cargarNombramientos(asambleistaId);
+                } else {
+                    showError(data.message || 'Error al agregar nombramiento');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión');
+            }
+        }
+
+        // =====================================================
+        // CANCELAR EDICIÓN
+        // =====================================================
+        function cancelarEdicion() {
+            window.location.href = '/asambleistas';
+        }
+
+        // =====================================================
+        // INICIALIZAR
+        // =====================================================
+        async function init() {
+            loadSharedComponents();
+            await cargarSectores();
+            await cargarPuestos();
+            
+            const idEditar = obtenerIdDeURL();
+            if (idEditar) {
+                await cargarAsambleistaParaEdicion(parseInt(idEditar));
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

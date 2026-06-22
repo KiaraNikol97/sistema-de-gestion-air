@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin: 5px 10px;
+        }
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        .card-stats {
+            border-radius: 15px;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .card-stats:hover {
+            transform: translateY(-5px);
+        }
+        .welcome-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .btn-logout {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .btn-logout:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-gavel me-2"></i>AIR
+                    </h4>
+                    <hr class="bg-light">
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="/asambleistas">
+                            <i class="fas fa-users"></i> Asambleístas
+                        </a>
+                        <a class="nav-link" href="/normativa/arbol">
+                            <i class="fas fa-book"></i> Normativa
+                        </a>
+                        <a class="nav-link" href="/compilador">
+                            <i class="fas fa-code-branch"></i> Compilador
+                        </a>
+                        <a class="nav-link" href="/sesiones">
+                            <i class="fas fa-calendar-alt"></i> Sesiones
+                        </a>
+                        <a class="nav-link" href="/certificaciones">
+                            <i class="fas fa-certificate"></i> Certificaciones
+                        </a>
+                        <a class="nav-link" href="/bitacora" id="menuBitacora" style="display: none;">
+                            <i class="fas fa-history"></i> Bitácora
+                        </a>
+                    </nav>
+                    <hr class="bg-light">
+                    <button id="logoutBtn" class="btn-logout">
+                        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 p-4">
+                <div class="welcome-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 id="welcomeMessage">Bienvenido/a</h2>
+                            <p class="text-muted mb-0" id="userRoleInfo"></p>
+                        </div>
+                        <div>
+                            <i class="fas fa-user-circle fa-4x text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card card-stats">
+                            <div class="card-body text-center">
+                                <i class="fas fa-users fa-3x text-primary mb-2"></i>
+                                <h3 id="totalAsambleistas">0</h3>
+                                <p class="text-muted">Asambleístas</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card card-stats">
+                            <div class="card-body text-center">
+                                <i class="fas fa-book fa-3x text-success mb-2"></i>
+                                <h3 id="totalNormativas">0</h3>
+                                <p class="text-muted">Reglamentos</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card card-stats">
+                            <div class="card-body text-center">
+                                <i class="fas fa-calendar-check fa-3x text-warning mb-2"></i>
+                                <h3 id="totalSesiones">0</h3>
+                                <p class="text-muted">Sesiones</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar sesión
+        async function verificarSesion() {
+            try {
+                const response = await fetch('/api/auth/verificar');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    window.location.href = '/login';
+                    return null;
+                }
+                return data.data;
+            } catch (error) {
+                window.location.href = '/login';
+                return null;
+            }
+        }
+        
+        async function cargarDashboard() {
+            const userData = await verificarSesion();
+            if (!userData) return;
+            
+            document.getElementById('welcomeMessage').innerHTML = `Bienvenido/a, ${userData.userId}`;
+            document.getElementById('userRoleInfo').innerHTML = `<i class="fas fa-tag me-1"></i>Rol: ${userData.rol}`;
+            
+            // Mostrar bitácora solo para Admin y Secretaría
+            if (userData.rol === 'Administrador' || userData.rol === 'Secretaria_AIR') {
+                document.getElementById('menuBitacora').style.display = 'block';
+            }
+            
+            // Cargar contadores
+            try {
+                const asambleistasRes = await fetch('/api/asambleistas');
+                const asambleistasData = await asambleistasRes.json();
+                if (asambleistasData.success) {
+                    document.getElementById('totalAsambleistas').innerText = asambleistasData.data.length;
+                }
+            } catch (e) {
+                console.error('Error cargando contadores:', e);
+            }
+        }
+        
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        });
+        
+        cargarDashboard();
+    </script>
+</body>
+</html>

@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Reglamentos - Estructura Árbol | AIR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --tree-line: #cbd5e0;
+            --tree-node-bg: #f8fafc;
+            --tree-node-hover: #e2e8f0;
+            --tree-active: #1e3c72;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .tree-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 25px;
+            margin-bottom: 30px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .tree, .tree ul {
+            list-style: none;
+            margin: 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .tree {
+            padding-left: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 8px 0 8px 20px;
+            margin: 0;
+        }
+
+        .tree li::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: '';
+            position: absolute;
+            top: 24px;
+            left: 0;
+            width: 15px;
+            height: 2px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::before {
+            height: 24px;
+        }
+
+        .tree > li::before, .tree > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: inline-block;
+            background: var(--tree-node-bg);
+            border-left: 4px solid var(--tree-active);
+            padding: 12px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: auto;
+            min-width: 280px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .tree-node:hover {
+            background: var(--tree-node-hover);
+            transform: translateX(3px);
+        }
+
+        .tree-node.active {
+            background: var(--tree-active);
+            border-left-color: #f59e0b;
+            color: white;
+        }
+
+        .tree-node.active .text-muted {
+            color: #cbd5e0 !important;
+        }
+
+        .tree-node .articulo-titulo {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .tree-node .articulo-numero {
+            font-weight: 700;
+            color: var(--tree-active);
+            margin-right: 10px;
+        }
+
+        .tree-node.active .articulo-numero {
+            color: #fbbf24;
+        }
+
+        .tree-node .articulo-resumen {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .badge-vigente {
+            background-color: #10b981;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-left: 10px;
+        }
+
+        .badge-historico {
+            background-color: #6c757d;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-left: 10px;
+        }
+
+        .tree-node.active .badge-vigente {
+            background-color: #34d399;
+        }
+
+        .content-panel {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 30px;
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .content-panel h2 {
+            color: var(--tree-active);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 20px;
+            color: white;
+        }
+
+        .modal-header-custom {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+
+        .form-label {
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .search-box input {
+            border-radius: 30px;
+            padding: 10px 20px 10px 45px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 18px;
+            top: 13px;
+            color: #94a3b8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        @media (max-width: 768px) {
+            .tree-container {
+                height: auto;
+                max-height: 400px;
+            }
+            .content-panel {
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-lg-5 col-xl-4">
+                <div class="tree-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5 class="mb-0"><i class="fas fa-sitemap me-2 text-primary"></i>Estructura del Reglamento</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" id="btn-expandir-todo">
+                                <i class="fas fa-plus-circle me-1"></i> Expandir
+                            </button>
+                            <button class="btn btn-sm btn-primary" id="btn-nuevo-elemento" style="display: none;" data-bs-toggle="modal" data-bs-target="#modalNuevoElemento">
+                                <i class="fas fa-plus me-1"></i> Nuevo
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="search-box position-relative mb-3">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="form-control" id="search-articulo" placeholder="Buscar por número o título...">
+                    </div>
+
+                    <div id="loading-tree" class="loading" style="display: none;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2">Cargando estructura...</p>
+                    </div>
+
+                    <div id="tree-container" style="max-height: calc(100vh - 280px); overflow-y: auto;">
+                        <ul class="tree" id="normativa-tree">
+                            <li>
+                                <div class="tree-node root-node" data-id="0" data-numero="REGLAMENTOS" data-titulo="Reglamentos" data-estado="vigente">
+                                    <span class="articulo-numero">📘 REGLAMENTOS</span>
+                                    <span class="articulo-titulo">Lista de Reglamentos</span>
+                                    <div class="articulo-resumen">Seleccione un reglamento para ver su estructura</div>
+                                    <span class="badge-vigente">VIGENTE</span>
+                                </div>
+                                <ul id="root-children"></ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7 col-xl-8">
+                <div class="content-panel" id="content-panel">
+                    <div id="loading-content" class="loading" style="display: none;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Cargando contenido...</p>
+                    </div>
+                    <div id="contenido-inicial">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-file-alt fa-4x mb-3 opacity-50"></i>
+                            <h4>Seleccione un artículo del reglamento</h4>
+                            <p>Haga clic en cualquier nodo del árbol para ver su contenido completo</p>
+                            <hr class="my-4">
+                            <p class="small">Puede <strong>consultar la normativa vigente</strong> del TEC</p>
+                        </div>
+                    </div>
+                    <div id="contenido-articulo" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CREAR NUEVO ELEMENTO -->
+    <div class="modal fade" id="modalNuevoElemento" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title" id="modalNuevoElementoTitulo"><i class="fas fa-plus-circle me-2"></i>Crear nuevo elemento normativo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formNuevoElemento" onsubmit="return false;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Nivel:</label>
+                                <select class="form-select" id="nivel_elemento" required>
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="Título">Título</option>
+                                    <option value="Capítulo">Capítulo</option>
+                                    <option value="Artículo">Artículo</option>
+                                    <option value="Inciso">Inciso</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Número/Etiqueta:</label>
+                                <input type="text" class="form-control" id="numero_elemento" placeholder="Ej: Artículo 5, Título I" required>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Elemento padre (jerarquía):</label>
+                            <select class="form-select" id="padre_elemento">
+                                <option value="">-- Ninguno (Raíz) --</option>
+                            </select>
+                            <small class="text-muted">Seleccione el elemento que contiene a este nuevo elemento</small>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Título/Encabezado:</label>
+                            <input type="text" class="form-control" id="titulo_elemento" placeholder="Ej: Del objeto del reglamento" required>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Contenido/Texto:</label>
+                            <textarea class="form-control" id="contenido_elemento" rows="5" placeholder="Escriba el texto completo del artículo o inciso..."></textarea>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label">Fecha de vigencia:</label>
+                            <input type="date" class="form-control" id="fecha_vigencia" value="2024-01-01">
+                        </div>
+
+                        <div class="mt-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="es_vigente" checked>
+                            <label class="form-check-label">Marcar como VIGENTE (si no, será HISTÓRICO)</label>
+                        </div>
+
+                        <div class="alert alert-info mt-3 small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Regla de Oro:</strong> No pueden existir dos versiones vigentes del mismo artículo simultáneamente.
+                        </div>
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="btn-guardar-elemento" onclick="guardarNuevoElemento()">Crear elemento</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PUBLICAR NUEVA VERSIÓN -->
+    <div class="modal fade" id="modalNuevaVersion" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title"><i class="fas fa-code-branch me-2"></i>Publicar nueva versión</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="version_id_elemento">
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Atención:</strong> Al publicar una nueva versión, la versión actual pasará a ser <strong>HISTÓRICA</strong>.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Elemento:</label>
+                        <div class="bg-light p-2 rounded" id="version_info_elemento">-</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nuevo contenido:</label>
+                        <textarea class="form-control" id="version_nuevo_contenido" rows="8" placeholder="Escriba el nuevo texto del artículo..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Número de Acuerdo/Resolución que aprueba esta reforma:</label>
+                        <input type="text" class="form-control" id="version_acuerdo" placeholder="Ej: AIR-99-2024">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de inicio de vigencia:</label>
+                        <input type="date" class="form-control" id="version_nueva_fecha" value="">
+                    </div>
+
+                    <div class="modal-footer px-0 pb-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" onclick="publicarNuevaVersion()">Publicar nueva versión</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // =====================================================
+        // VARIABLES GLOBALES
+        // =====================================================
+        let currentActiveNode = null;
+        let currentElementoId = null;
+        let userRole = '';
+        let puedeEditar = false;
+        let elementosList = [];
+
+        // =====================================================
+        // OBTENER ROL DEL USUARIO
+        // =====================================================
+        async function obtenerRolUsuario() {
+            try {
+                const response = await fetch('/api/auth/verificar');
+                const data = await response.json();
+                if (data.success) {
+                    userRole = data.data.rol;
+                    puedeEditar = (userRole === 'Administrador' || userRole === 'Secretaria_AIR');
+                    
+                    const btnNuevo = document.getElementById('btn-nuevo-elemento');
+                    if (btnNuevo) {
+                        btnNuevo.style.display = puedeEditar ? 'inline-block' : 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error obteniendo rol:', error);
+            }
+        }
+
+        // =====================================================
+        // COMPONENTES COMPARTIDOS
+        // =====================================================
+        function loadSharedComponents() {
+            const navbarHtml = `
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="#"><i class="fas fa-gavel me-2"></i>AIR - Sistema Normativo</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav ms-auto">
+                                <li class="nav-item"><a class="nav-link" href="/asambleistas"><i class="fas fa-users me-1"></i> Asambleístas</a></li>
+                                <li class="nav-item"><a class="nav-link active" href="/normativa/arbol"><i class="fas fa-book me-1"></i> Normativa</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/compilador"><i class="fas fa-code-branch me-1"></i> Compilador</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/certificaciones"><i class="fas fa-certificate me-1"></i> Certificaciones</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/bitacora" id="menuBitacora" style="display: none;"><i class="fas fa-history me-1"></i> Bitácora</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+            `;
+            const footerHtml = `
+                <footer class="text-center text-muted py-3 mt-4 border-top">
+                    <small>Asamblea Institucional Representativa - TEC | Sistema de Gestión Legislativa</small>
+                </footer>
+            `;
+            document.getElementById('navbar-placeholder').innerHTML = navbarHtml;
+            document.getElementById('footer-placeholder').innerHTML = footerHtml;
+            
+            if (puedeEditar) {
+                const menuBitacora = document.getElementById('menuBitacora');
+                if (menuBitacora) menuBitacora.style.display = 'block';
+            }
+        }
+
+        // =====================================================
+        // CARGAR ELEMENTOS PARA EL SELECTOR DE PADRE
+        // =====================================================
+        async function cargarElementosParaSelector() {
+            const padreSelect = document.getElementById('padre_elemento');
+            padreSelect.innerHTML = '<option value="">-- Ninguno (Raíz) --</option>';
+            
+            try {
+                const response = await fetch('/api/normativa/arbol');
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // Función para recorrer el árbol y agregar opciones al selector
+                    function agregarOpciones(nodos, nivel = 0) {
+                        const prefix = '  '.repeat(nivel);
+                        for (const node of nodos) {
+                            if (node.id && node.id !== 0) {
+                                const opcion = document.createElement('option');
+                                opcion.value = node.id;
+                                opcion.textContent = `${prefix}${node.numero} - ${node.titulo}`;
+                                padreSelect.appendChild(opcion);
+                            }
+                            if (node.hijos && node.hijos.length > 0) {
+                                agregarOpciones(node.hijos, nivel + 1);
+                            }
+                        }
+                    }
+                    agregarOpciones(result.data);
+                }
+            } catch (error) {
+                console.error('Error cargando elementos para selector:', error);
+            }
+        }
+
+        // =====================================================
+        // RENDERIZAR ÁRBOL
+        // =====================================================
+        function renderTree(nodes, parentElement, level = 0) {
+            if (!nodes || nodes.length === 0) {
+                // Mostrar mensaje de que no hay elementos
+                const li = document.createElement('li');
+                li.innerHTML = `<div class="tree-node"><span class="articulo-titulo">No hay elementos en este reglamento</span></div>`;
+                parentElement.appendChild(li);
+                return;
+            }
+            
+            nodes.forEach(node => {
+                const li = document.createElement('li');
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'tree-node';
+                nodeDiv.setAttribute('data-id', node.id);
+                nodeDiv.setAttribute('data-numero', node.numero);
+                nodeDiv.setAttribute('data-titulo', node.titulo);
+                nodeDiv.setAttribute('data-estado', node.estado);
+                
+                const badge = node.estado === 'vigente' ? 
+                    '<span class="badge-vigente">VIGENTE</span>' : 
+                    '<span class="badge-historico">HISTÓRICO</span>';
+                
+                nodeDiv.innerHTML = `
+                    <span class="articulo-numero">${node.numero}</span>
+                    <span class="articulo-titulo">${node.titulo}</span>
+                    <div class="articulo-resumen">${node.resumen || 'Sin descripción'}</div>
+                    ${badge}
+                `;
+                
+                nodeDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    loadArticuloContent(node.id, node.numero, node.titulo);
+                    setActiveNode(nodeDiv);
+                };
+                
+                li.appendChild(nodeDiv);
+                
+                if (node.hijos && node.hijos.length > 0) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'tree-submenu';
+                    ul.style.display = 'block';
+                    renderTree(node.hijos, ul, level + 1);
+                    li.appendChild(ul);
+                    
+                    nodeDiv.ondblclick = (e) => {
+                        e.stopPropagation();
+                        const submenu = li.querySelector('ul');
+                        if (submenu) {
+                            submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
+                        }
+                    };
+                }
+                
+                parentElement.appendChild(li);
+            });
+        }
+
+        function setActiveNode(nodeElement) {
+            if (currentActiveNode) {
+                currentActiveNode.classList.remove('active');
+            }
+            nodeElement.classList.add('active');
+            currentActiveNode = nodeElement;
+            currentElementoId = nodeElement.getAttribute('data-id');
+        }
+
+        // =====================================================
+        // CARGAR CONTENIDO DEL ARTÍCULO
+        // =====================================================
+        async function loadArticuloContent(id, numero, titulo) {
+            const loadingContent = document.getElementById('loading-content');
+            const contenidoInicial = document.getElementById('contenido-inicial');
+            const contenidoArticulo = document.getElementById('contenido-articulo');
+            
+            loadingContent.style.display = 'block';
+            contenidoInicial.style.display = 'none';
+            contenidoArticulo.style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/normativa/articulo/${id}`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    renderArticuloContent(result.data, id, numero, titulo);
+                } else {
+                    renderMockContent(id, numero, titulo);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                renderMockContent(id, numero, titulo);
+            } finally {
+                loadingContent.style.display = 'none';
+                contenidoArticulo.style.display = 'block';
+            }
+        }
+
+        function renderArticuloContent(data, id, numero, titulo) {
+            const container = document.getElementById('contenido-articulo');
+            const estadoBadge = data.estado === 'vigente' ? 
+                '<span class="badge-vigente">VIGENTE</span>' : 
+                '<span class="badge-historico">HISTÓRICO</span>';
+            
+            let botonesHtml = '';
+            if (puedeEditar) {
+                botonesHtml = `
+                    <div class="mt-4 d-flex gap-2">
+                        <button class="btn btn-warning" onclick='abrirModalNuevaVersion(${id}, "${numero}", "${titulo.replace(/"/g, '&quot;')}")'>
+                            <i class="fas fa-code-branch me-1"></i> Publicar nueva versión
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="abrirModalEditar(${id})">
+                            <i class="fas fa-edit me-1"></i> Editar
+                        </button>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = `
+                <div class="mb-4">
+                    <h2>${numero} - ${titulo} ${estadoBadge}</h2>
+                    <div class="bg-light p-3 rounded">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        <strong>Vigencia:</strong> Desde: ${data.vigencia_inicio || 'No especificada'}
+                        ${data.vigencia_fin ? ` | Hasta: ${data.vigencia_fin}` : ' | <span class="text-success">Actualidad</span>'}
+                    </div>
+                </div>
+                <div class="articulo-contenido">
+                    <h5><i class="fas fa-align-left me-2 text-muted"></i>Contenido</h5>
+                    <div class="p-3 bg-light rounded">${data.contenido}</div>
+                </div>
+                ${botonesHtml}
+            `;
+        }
+
+        function renderMockContent(id, numero, titulo) {
+            const container = document.getElementById('contenido-articulo');
+            
+            let botonesHtml = '';
+            if (puedeEditar) {
+                botonesHtml = `
+                    <div class="mt-4 d-flex gap-2">
+                        <button class="btn btn-warning" onclick='abrirModalNuevaVersion(${id}, "${numero}", "${titulo.replace(/"/g, '&quot;')}")'>
+                            <i class="fas fa-code-branch me-1"></i> Publicar nueva versión
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="abrirModalEditar(${id})">
+                            <i class="fas fa-edit me-1"></i> Editar
+                        </button>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = `
+                <div class="mb-4">
+                    <h2>${numero} - ${titulo} <span class="badge-vigente">VIGENTE</span></h2>
+                    <div class="bg-light p-3 rounded">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        <strong>Vigencia:</strong> Desde: 2024-01-01 | <span class="text-success">Actualidad</span>
+                    </div>
+                </div>
+                <div class="articulo-contenido">
+                    <h5><i class="fas fa-align-left me-2 text-muted"></i>Contenido</h5>
+                    <div class="p-3 bg-light rounded">Contenido del ${numero}: ${titulo}</div>
+                </div>
+                ${botonesHtml}
+            `;
+        }
+
+        // =====================================================
+        // CREAR ELEMENTO - CON RECARGA DE ÁRBOL
+        // =====================================================
+        async function guardarNuevoElemento() {
+            const nivel = document.getElementById('nivel_elemento').value;
+            const numero = document.getElementById('numero_elemento').value;
+            const padre = document.getElementById('padre_elemento').value;
+            const titulo = document.getElementById('titulo_elemento').value;
+            const contenido = document.getElementById('contenido_elemento').value;
+            const fechaVigencia = document.getElementById('fecha_vigencia').value;
+            const esVigente = document.getElementById('es_vigente').checked;
+            
+            if (!numero || !titulo) {
+                alert('Complete los campos obligatorios');
+                return;
+            }
+            
+            const nivelMap = {
+                'Título': 1,
+                'Capítulo': 2,
+                'Artículo': 3,
+                'Inciso': 4
+            };
+            const id_nivel_reglamento = nivelMap[nivel] || 3;
+            
+            // Si no se selecciona padre, es un reglamento raíz (id_reglamento = 1 por defecto)
+            // Si se selecciona padre, obtenemos su reglamento
+            let id_reglamento = 1;
+            let id_elemento_padre = null;
+            
+            if (padre) {
+                // Verificar si el padre es un reglamento o un elemento
+                if (padre.startsWith('reg_')) {
+                    id_reglamento = parseInt(padre.split('_')[1]);
+                } else {
+                    id_elemento_padre = parseInt(padre);
+                    // Obtener el reglamento del padre (necesitas un endpoint para esto)
+                    try {
+                        const padreResponse = await fetch(`/api/normativa/articulo/${id_elemento_padre}`);
+                        const padreResult = await padreResponse.json();
+                        if (padreResult.success && padreResult.data) {
+                            // El ID del reglamento lo obtenemos del elemento padre
+                            // Nota: Necesitas que el endpoint devuelva id_reglamento
+                            // Si no, asumimos reglamento 1
+                        }
+                    } catch (e) {
+                        console.error('Error obteniendo reglamento del padre:', e);
+                    }
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/normativa/elemento', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_reglamento: id_reglamento,
+                        id_elemento_padre: id_elemento_padre,
+                        id_nivel_reglamento: id_nivel_reglamento,
+                        numero_etiqueta: numero,
+                        contenido_texto: contenido || `Contenido del ${numero}: ${titulo}`,
+                        titulo: titulo,
+                        orden: 1,
+                        fecha_inicio_vigencia: fechaVigencia || new Date().toISOString().split('T')[0],
+                        id_estado_vigencia: esVigente ? 1 : 2,
+                        id_usuario_registro: 1
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Elemento creado: ${nivel} ${numero} - ${titulo}`);
+                    
+                    const modalElement = document.getElementById('modalNuevoElemento');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    modal.hide();
+                    document.getElementById('formNuevoElemento').reset();
+                    
+                    // ✅ RECARGAR EL ÁRBOL Y EL SELECTOR
+                    await cargarElementosParaSelector();
+                    loadTree();
+                } else {
+                    alert('Error: ' + (result.message || 'Error al crear el elemento'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            }
+        }
+
+        // =====================================================
+        // PUBLICAR NUEVA VERSIÓN - CON RECARGA DE ÁRBOL
+        // =====================================================
+        function abrirModalNuevaVersion(id, numero, titulo) {
+            document.getElementById('version_id_elemento').value = id;
+            document.getElementById('version_info_elemento').innerHTML = `<strong>${numero} - ${titulo}</strong>`;
+            document.getElementById('version_nueva_fecha').value = new Date().toISOString().split('T')[0];
+            new bootstrap.Modal(document.getElementById('modalNuevaVersion')).show();
+        }
+
+        async function publicarNuevaVersion() {
+            const id = document.getElementById('version_id_elemento').value;
+            const nuevoContenido = document.getElementById('version_nuevo_contenido').value;
+            const acuerdo = document.getElementById('version_acuerdo').value;
+            const nuevaFecha = document.getElementById('version_nueva_fecha').value;
+            
+            if (!nuevoContenido) {
+                alert('Debe ingresar el nuevo contenido');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/normativa/version', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_elemento: parseInt(id),
+                        texto_nuevo: nuevoContenido,
+                        fecha_inicio: nuevaFecha,
+                        acuerdo: acuerdo || null
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Nueva versión publicada.\nVigencia a partir de: ${nuevaFecha}\nLa versión anterior ha sido marcada como HISTÓRICA.`);
+                    
+                    const modalElement = document.getElementById('modalNuevaVersion');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    modal.hide();
+                    
+                    // ✅ RECARGAR EL ÁRBOL
+                    await cargarElementosParaSelector();
+                    loadTree();
+                    
+                    if (currentElementoId) {
+                        const node = document.querySelector(`.tree-node[data-id="${currentElementoId}"]`);
+                        if (node) {
+                            const numero = node.getAttribute('data-numero');
+                            const titulo = node.getAttribute('data-titulo');
+                            loadArticuloContent(currentElementoId, numero, titulo);
+                        }
+                    }
+                    
+                    document.getElementById('version_acuerdo').value = '';
+                } else {
+                    alert('Error: ' + (result.message || 'Error al publicar'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            }
+        }
+
+        // =====================================================
+        // EDITAR ELEMENTO - FUNCIONALIDAD COMPLETA
+        // =====================================================
+        function abrirModalEditar(id) {
+            const node = document.querySelector(`.tree-node[data-id="${id}"]`);
+            if (!node) {
+                alert('Elemento no encontrado');
+                return;
+            }
+            
+            const numero = node.getAttribute('data-numero');
+            const titulo = node.getAttribute('data-titulo');
+            const estado = node.getAttribute('data-estado');
+            
+            document.getElementById('modalNuevoElementoTitulo').innerHTML = '<i class="fas fa-edit me-2"></i>Editar elemento normativo';
+            document.getElementById('numero_elemento').value = numero;
+            document.getElementById('titulo_elemento').value = titulo;
+            
+            const contenidoDiv = document.querySelector('#contenido-articulo .articulo-contenido .bg-light');
+            if (contenidoDiv) {
+                document.getElementById('contenido_elemento').value = contenidoDiv.innerText.trim();
+            }
+            
+            const fechaSpan = document.querySelector('#contenido-articulo .bg-light');
+            if (fechaSpan) {
+                const fechaMatch = fechaSpan.innerText.match(/Desde:\s*(\d{4}-\d{2}-\d{2})/);
+                if (fechaMatch) {
+                    document.getElementById('fecha_vigencia').value = fechaMatch[1];
+                }
+            }
+            
+            document.getElementById('es_vigente').checked = estado === 'vigente';
+            
+            const btnGuardar = document.getElementById('btn-guardar-elemento');
+            btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i> Actualizar Elemento';
+            btnGuardar.onclick = function() {
+                actualizarElemento(id);
+            };
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalNuevoElemento'));
+            modal.show();
+        }
+
+        async function actualizarElemento(id) {
+            const numero = document.getElementById('numero_elemento').value;
+            const titulo = document.getElementById('titulo_elemento').value;
+            const contenido = document.getElementById('contenido_elemento').value;
+            const fechaVigencia = document.getElementById('fecha_vigencia').value;
+            const esVigente = document.getElementById('es_vigente').checked;
+            
+            if (!numero || !titulo) {
+                alert('Complete los campos obligatorios');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/normativa/elemento/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        numero_etiqueta: numero,
+                        contenido_texto: contenido || `Contenido del ${numero}: ${titulo}`,
+                        titulo: titulo,
+                        fecha_inicio_vigencia: fechaVigencia || new Date().toISOString().split('T')[0],
+                        id_estado_vigencia: esVigente ? 1 : 2
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Elemento actualizado: ${numero} - ${titulo}`);
+                    
+                    const modalElement = document.getElementById('modalNuevoElemento');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    modal.hide();
+                    
+                    document.getElementById('formNuevoElemento').reset();
+                    const btnGuardar = document.getElementById('btn-guardar-elemento');
+                    btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i> Crear elemento';
+                    btnGuardar.onclick = function() { guardarNuevoElemento(); };
+                    document.getElementById('modalNuevoElementoTitulo').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Crear nuevo elemento normativo';
+                    
+                    await cargarElementosParaSelector();
+                    loadTree();
+                    
+                    if (currentElementoId) {
+                        const node = document.querySelector(`.tree-node[data-id="${currentElementoId}"]`);
+                        if (node) {
+                            const num = node.getAttribute('data-numero');
+                            const tit = node.getAttribute('data-titulo');
+                            loadArticuloContent(currentElementoId, num, tit);
+                        }
+                    }
+                } else {
+                    alert('Error: ' + (result.message || 'Error al actualizar'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            }
+        }
+
+        // =====================================================
+        // BUSCAR Y EXPANDIR
+        // =====================================================
+        document.getElementById('search-articulo').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.tree-node').forEach(node => {
+                const match = (node.getAttribute('data-numero')?.toLowerCase() || '').includes(term) || 
+                             (node.getAttribute('data-titulo')?.toLowerCase() || '').includes(term);
+                node.style.display = match || !term ? '' : 'none';
+                if (match && term) {
+                    let parent = node.closest('li')?.parentElement?.closest('li');
+                    while (parent) {
+                        const submenu = parent.querySelector('ul');
+                        if (submenu) submenu.style.display = 'block';
+                        parent = parent.parentElement?.closest('li');
+                    }
+                }
+            });
+        });
+
+        let expandido = true;
+        document.getElementById('btn-expandir-todo').addEventListener('click', () => {
+            document.querySelectorAll('.tree-submenu').forEach(submenu => {
+                submenu.style.display = expandido ? 'none' : 'block';
+            });
+            expandido = !expandido;
+        });
+
+        // =====================================================
+        // CARGAR ÁRBOL
+        // =====================================================
+        async function loadTree() {
+            const loadingDiv = document.getElementById('loading-tree');
+            loadingDiv.style.display = 'block';
+            try {
+                const response = await fetch('/api/normativa/arbol');
+                const result = await response.json();
+                const container = document.getElementById('root-children');
+                container.innerHTML = '';
+                if (result.success && result.data && result.data.length > 0) {
+                    renderTree(result.data, container);
+                } else {
+                    renderEmptyTree();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                renderEmptyTree();
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        function renderEmptyTree() {
+            document.getElementById('root-children').innerHTML = '<li><div class="tree-node"><span class="articulo-titulo">No hay reglamentos cargados</span></div></li>';
+        }
+
+        // =====================================================
+        // INICIALIZAR
+        // =====================================================
+        async function init() {
+            await obtenerRolUsuario();
+            loadSharedComponents();
+            await cargarElementosParaSelector();
+            loadTree();
+        }
+
+        init();
+    </script>
+</body>
+</html>
